@@ -23,18 +23,12 @@ Priority topics include:
 
 The central thesis is that internal model phenomena become more security-relevant when they are embedded in systems with autonomy, tools, memory, persistence, and repeated interaction with external environments.
 
-Reports should separate demonstrated capability from plausible risk and from conjecture. They should explicitly flag weak evidence, toy settings, missing baselines, unverified causal claims, benchmark gaming, lack of peer review, speculative extrapolation, and institutional or marketing hype.
+The research should separate demonstrated capability from plausible risk and from conjecture. It should explicitly flag weak evidence, toy settings, missing baselines, unverified causal claims, benchmark gaming, lack of peer review, speculative extrapolation, and institutional or marketing hype.
 
-## Output
+## Research memory
 
-Dated reports should normally contain a selective shortlist of high-value items rather than a broad news roundup. For each item, capture:
+`research.md` is the living memory for this research stream. Each scheduler run should read it before searching and revise it in place rather than create a new dated report.
 
-- title, authors or institution, date, and publication status;
-- direct primary-source link;
-- what is genuinely new compared with prior work;
-- mechanism or threat model;
-- why the result matters for system-level attack surfaces;
-- limitations and evidential strength;
-- whether the finding is a demonstrated capability, a plausible risk, or a conjecture.
+The document should preserve primary-source links, dates, publication status, mechanisms or threat models, evidential strength, limitations, and the relationship of each result to system-level attack surfaces. Prior claims and papers should be marked as still relevant, strengthened, weakened, contradicted, superseded, or deprioritized when new evidence appears.
 
-Each report should end with a short synthesis of emerging patterns, the highest-priority papers to read in full, and any notable negative result or absence of evidence.
+Useful historical context, negative results, and previously plausible hypotheses should be retained in compact archival sections rather than silently removed, so changes in the security picture remain traceable over time.
