@@ -2,7 +2,7 @@
 
 A versioned research knowledge base for recurring literature-monitoring tasks run through ChatGPT schedulers.
 
-The repository stores curated research reports, primary-source links, technical comparisons, and longitudinal notes across several research programs. Each monitored topic has its own directory and README describing the scope, selection criteria, and intended report structure.
+The repository stores curated primary-source links, technical comparisons, evolving research conclusions, and longitudinal notes across several research programs. Each monitored topic has its own directory and README describing the scope and evidence policy.
 
 ## Research programs
 
@@ -17,26 +17,31 @@ The repository stores curated research reports, primary-source links, technical 
 
 ## Repository model
 
-Each topic directory is designed to contain dated research reports produced by its corresponding scheduler. The intended convention is:
+Each topic directory maintains a single living research document:
 
 ```text
 <topic>/
 ├── README.md
-└── reports/
-    ├── YYYY-MM-DD.md
-    └── ...
+└── research.md
 ```
 
-Reports should favor primary sources, preserve direct links to papers and technical reports, distinguish evidence from speculation, and avoid repeating previously cataloged work unless there is a meaningful revision or new result.
+`README.md` defines what the research stream monitors. `research.md` is the persistent research memory maintained by the corresponding scheduler.
+
+The research file is **not an append-only weekly log**. On each run, the scheduler should read the existing state, search for new evidence, and then revise the document so it reflects the best current understanding of the area. New papers may be added, prior conclusions may be strengthened or weakened, and older material may be marked as contradicted, superseded, or deprioritized when the evidence changes.
+
+Useful historical context should be preserved rather than silently deleted. Superseded or lower-priority material can be moved into compact archival sections within the same document.
 
 ## Design goals
 
-- **Persistence:** research links and conclusions should survive beyond a single chat or scheduler run.
-- **Traceability:** claims should remain tied to primary sources and dated reports.
-- **Deduplication:** recurring searches should be able to compare new findings against the existing repository.
-- **Longitudinal analysis:** reports should make it possible to see how a research area, claim, or technical disagreement evolves over time.
-- **Machine readability:** the repository should remain simple enough to be searched, parsed, embedded, or incorporated into future RAG/research workflows.
+- **Persistence:** research links and conclusions survive beyond a single chat or scheduler run.
+- **Traceability:** claims stay tied to primary sources and publication dates.
+- **Deduplication:** recurring searches compare findings against the existing research memory before adding them.
+- **Current-state synthesis:** each `research.md` should represent the present state of the research, not merely a chronology of searches.
+- **Longitudinal memory:** changes in relevance, evidence strength, and technical disagreements remain visible over time.
+- **Machine readability:** the repository remains simple enough to search, parse, embed, or incorporate into future RAG and research workflows.
 
 ## Automation
 
-The repository is intended to be updated by recurring ChatGPT research schedulers. A scheduler may read existing reports to detect duplicates and prior conclusions, perform a new literature search, and then create a new dated report containing only meaningful additions or revisions.
+The repository is updated by recurring ChatGPT research schedulers. Each scheduler reads its topic README and existing `research.md`, performs a new literature search, reconciles new findings with the stored research state, and updates that same file in place.
+
+The GitHub document is intentionally more technical and complete than the scheduler's chat response. Chat notifications should remain short and summarize only what materially changed, why it matters, and where to find the updated research document.
