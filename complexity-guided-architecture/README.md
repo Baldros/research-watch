@@ -25,18 +25,12 @@ Priority areas include:
 
 The goal is not to assume that a single scalar complexity measure can directly determine an optimal architecture. Instead, the monitoring program looks for evidence that multiple measurable properties can progressively constrain the viable architecture space.
 
-Reports should distinguish between methods that merely correlate with architecture requirements and methods that provide stronger predictive, theoretical, or causal evidence.
+The research should distinguish between methods that merely correlate with architecture requirements and methods that provide stronger predictive, theoretical, or causal evidence.
 
-## Output
+## Research memory
 
-Dated reports should emphasize:
+`research.md` is the living memory for this research stream. Each scheduler run should read it first, then revise it in place rather than create a dated weekly report.
 
-- what is technically new;
-- which complexity measure is used;
-- how the measure relates to architecture, especially width and depth;
-- whether the method is data-first, model-first, or jointly optimized;
-- experimental and theoretical evidence;
-- limitations and assumptions;
-- how close the result comes to an interpretable architecture-selection strategy.
+The document should track what is technically new, which complexity measures are used, how they relate to architecture—especially width and depth—and whether the evidence is empirical, theoretical, predictive, or causal. Prior ideas and papers should be marked as still relevant, strengthened, weakened, contradicted, superseded, or deprioritized when appropriate.
 
-Primary sources should be preferred, and repeated papers should only reappear when there is a meaningful revision or new result.
+Primary-source links, assumptions, limitations, and the connection to the central architecture-selection thesis should be preserved. Useful older material should remain available in a compact archival section rather than be silently removed.
