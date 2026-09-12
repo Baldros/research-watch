@@ -21,19 +21,12 @@ Special attention is given to work that can connect topological methods to mesh 
 
 ## Research objective
 
-The goal is to identify work where topology provides a meaningful modeling advantage rather than serving only as an auxiliary descriptor. Reports should distinguish conceptual advances from incremental applications of established topological machinery.
+The goal is to identify work where topology provides a meaningful modeling advantage rather than serving only as an auxiliary descriptor. The research should distinguish conceptual advances from incremental applications of established topological machinery.
 
-## Output
+## Research memory
 
-Dated reports should summarize only genuinely relevant developments and include:
+`research.md` is the living memory for this research stream. Each scheduler run should read the current document before searching and revise it in place rather than create a new dated report.
 
-- title, authors or institution, date, and publication status;
-- direct primary-source links;
-- the topological object or construction being used;
-- the learning problem it is intended to solve;
-- the main empirical or theoretical contribution;
-- conceptual relevance and relation to prior work;
-- limitations and open questions;
-- possible connections to mesh generation, geometry, or scientific simulation when appropriate.
+The document should preserve primary-source links, dates, evidence quality, the topological construction being used, the learning problem it addresses, empirical or theoretical support, limitations, and connections to geometry, scientific simulation, and mesh generation when relevant. Prior papers, methods, or claims should be marked as still relevant, strengthened, weakened, contradicted, superseded, or deprioritized when new evidence changes the picture.
 
-If a given week contains no significant advances, the report should say so briefly rather than padding the archive with low-value material.
+Useful historical material should remain available in compact archival sections rather than be silently deleted, while the main body should reflect the best current conceptual map of the field.
