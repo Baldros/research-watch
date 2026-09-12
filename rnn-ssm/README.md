@@ -18,19 +18,12 @@ Priority topics include:
 
 The goal is to understand which recurrent ideas represent genuine architectural progress, which are mostly efficiency refinements, and how recurrent or state-space approaches compare with standard Transformer-style sequence processing.
 
-Reports should distinguish conceptual changes from incremental engineering improvements and should explicitly connect new work to prior architectures when possible.
+The research should distinguish conceptual changes from incremental engineering improvements and explicitly connect new work to prior architectures when possible.
 
-## Output
+## Research memory
 
-Dated reports should capture:
+`research.md` is the living memory for this research stream. Each scheduler run should read the current state before searching and revise the document in place rather than create a new weekly report.
 
-- title, authors or institution, date, and publication status;
-- direct primary-source link;
-- core technical contribution;
-- relationship to prior work;
-- experimental evidence and benchmarks;
-- limitations and unresolved questions;
-- whether the contribution is incremental or conceptually significant;
-- a short synthesis of what changed in the field since the previous report.
+The document should preserve primary-source links, publication status, architectural relationships, benchmark context, experimental evidence, limitations, and unresolved questions. Prior papers or conclusions should be marked as still relevant, strengthened, weakened, contradicted, superseded, or deprioritized when new evidence changes the picture.
 
-Repeated papers should only return when a substantial revision, new benchmark, or meaningful follow-up changes the technical picture.
+Useful historical material should remain available in a compact archival section instead of being silently deleted, while the main body should reflect the best current conceptual map of modern recurrent, state-space, and hybrid sequence architectures.
