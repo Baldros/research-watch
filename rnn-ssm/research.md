@@ -1,170 +1,238 @@
 # RNN and SSM Research Memory
 
-_Last updated: 2026-09-12_
+_Last updated: 2026-09-19_
 
-This is a curated living document for modern recurrent sequence models, State Space Models (SSMs), linear attention, recurrent-depth models, and recurrent/attention hybrids in NLP and LLMs. It is organized by the current conceptual structure of the field rather than by weekly scheduler runs.
+This is a curated living document for modern recurrent sequence models, State Space Models (SSMs), linear attention, recurrent-depth models, and recurrent/attention hybrids in NLP and LLMs. It is organized by the current conceptual structure of the field rather than by scheduler-run order.
 
 ## Current assessment
 
-The field is no longer well described as "RNN vs Transformer." The active design space now contains at least two distinct kinds of recurrence:
+The field is no longer well described as "RNN vs Transformer." The active design space contains at least two importantly different forms of recurrence:
 
-1. **Token-time recurrence**: a fixed-size state is updated while moving through sequence positions. This includes SSMs, linear attention in recurrent form, RWKV, xLSTM, Hawk/Griffin, and related hybrids.
-2. **Loop-time / recurrent-depth recurrence**: the same or shared computation block is repeatedly applied to an internal representation to spend more computation on the same input. This includes recurrent-depth/looped Transformers, RecurTrace, and the new Looped Flows line.
+1. **Token-time recurrence**: a fixed-size or bounded state is updated as the model advances through sequence positions. This includes SSMs, linear attention in recurrent form, RWKV, xLSTM, Hawk/Griffin, Gated DeltaNet/KDA, and related hybrids.
+2. **Loop-time / recurrent-depth recurrence**: shared computation is repeatedly applied to the same input representation or reasoning state to spend more computation before advancing. This includes Universal/looped Transformers, RecurTrace, Looped Flows, Attractor Models, LSTM-UT, and related latent-reasoning architectures.
 
-For token-time models, the most useful conceptual decomposition is increasingly:
+These axes should not be conflated. A model can have a long recurrent path across tokens without performing extra computation on the same token, and a looped model can repeatedly refine the same state without carrying a compressed history across arbitrarily many tokens.
+
+For token-time models, the useful decomposition has expanded beyond write/erase/read:
 
 - **write/update**: what new information enters the state;
 - **erase/forget**: what old information is attenuated or overwritten;
 - **read/query**: how the compressed state is interrogated;
-- **uncertainty/confidence**: how strongly the model should trust the existing state;
+- **uncertainty/confidence**: how strongly the model should trust stored associations;
+- **timescale spectrum**: which state directions decay slowly enough to carry long-range information while retaining fast modes for clearing/context switching;
 - **serving/reconstruction**: how recurrent states can be cached, reused, quantized, or reconstructed in production.
 
-Hybrid architectures remain especially credible. Recent causal evidence suggests that full attention and recurrent state can learn different memory roles rather than being redundant approximations of each other: attention is strong at exact addressable retrieval/bindings, while recurrence can carry compressed semantic, stylistic, or behavioral context.
+Hybrid architectures remain especially credible. Recent causal evidence suggests that full attention and recurrent state can learn different memory roles rather than being redundant approximations: attention is strong at exact addressable retrieval/bindings, while recurrence can carry compressed semantic, stylistic, or behavioral context.
+
+A second theme strengthened this week: **more persistent memory is not automatically better**. New recurrent-depth experiments show that an expanding cache can interfere with corrected current states, while bounded gated memory can generalize more robustly. This reinforces the importance of memory selection, gating, and state geometry rather than simply increasing history access.
 
 ---
 
 ## Material changes since the previous report
 
-### 1. Thinking with Looped Flows
+### 1. SpectralShift: Effective Context Window Extension of Gated DeltaNet via Spectral Reparameterization
 
-**Status:** NEW — conceptually important; arXiv v1, 2026-09-10  
-**Authors:** Ayhan Suleymanzade, Chanhyuk Lee, Floor Eijkelboom, Nicholas M. Boffi, İsmail İlkan Ceylan, Jinwoo Kim  
-**Affiliations reported across the paper/project:** EPFL, KAIST, University of Amsterdam, Carnegie Mellon University, TU Wien, AITHYRA, University of Oxford  
-**Primary source:** https://arxiv.org/abs/2609.11801
-
-#### Contribution
-
-Looped models/recurrent-depth models repeatedly update a hidden state, but full BPTT through many loop iterations is expensive and unstable. Practical methods therefore often stop gradients between iterations or backpropagate through only a short recurrence, which weakens temporal credit assignment: early loop states are not directly trained to support much later computation.
-
-Looped Flows changes the training problem rather than merely changing the recurrent block. It trains a **stateful denoiser** over a sequence of progressively lower-noise local denoising objectives. Consecutive objectives share the same noise/target pair, creating temporal association across loop iterations even when gradients do not propagate through the full recurrence. At inference, the model couples the recurrent hidden state to a probability-flow trajectory and can spend more compute by using a finer integration grid.
-
-A simplified view is:
-
-- looped model: `z_i = f(z_{i-1}, c)`;
-- looped flow: a stateful denoiser jointly updates a prediction/flow state and recurrent state, while each iteration solves a locally supervised denoising problem whose difficulty decreases over time.
-
-This is **not the same mechanism as RecurTrace**. RecurTrace improves recurrent depth by making previous loop states explicitly addressable with Loop Memory Attention and by learning when to halt. Looped Flows instead changes how recurrence is trained and how inference-time computation is parameterized, using flow/denoising structure to make local training signals temporally coherent.
-
-#### Evidence
-
-The paper reports results across six reasoning benchmarks, outperforming prior looped-model baselines on five and remaining competitive on the sixth. With the same architecture as TRM, it reports:
-
-- ARC-AGI-1: **58.8%** vs **44.6%** for TRM;
-- ARC-AGI-2: **12.2%** vs **7.8%** for TRM.
-
-It also reports stable improvement as inference-time computation increases and supports multiple valid solutions by sampling different initial noise states.
-
-#### Limitations / evidence quality
-
-- v1 preprint; no peer-reviewed status yet.
-- Evidence is on reasoning/problem-solving benchmarks, not general next-token pretraining at LLM scale.
-- The method adds a flow/denoising formulation and numerical integration machinery; it is not yet clear whether this scales cleanly to large autoregressive language models.
-- It strengthens the **recurrent-depth** branch, not the token-time SSM/linear-attention branch.
-
-#### Assessment
-
-**Conceptual change. High priority.** The most important new result this run. It reframes recurrent-depth training as a temporal credit-assignment problem and uses local denoising/flow objectives to solve it without full long-horizon BPTT.
-
----
-
-### 2. Learning Length-Extrapolatable Recurrent Models
-
-**Status:** NEW — conceptually important training result; arXiv v1, 2026-09-08  
-**Author:** Hanwen Jiang  
-**Institution:** Adobe Research  
-**Primary source:** https://arxiv.org/abs/2609.09157
+**Status:** NEW — arXiv preprint, first posted 2026-09-13; code released  
+**Authors:** Zian Liu, Yiwen Hu, Zican Dong, Tian Xie, Wayne Xin Zhao, Yucheng Ding, Ran Tao, Bryan Dai  
+**Primary:** https://arxiv.org/abs/2609.14320  
+**Code/results:** https://github.com/RUCAIBox/GDN-SpectralShift
 
 #### Contribution
 
-The paper argues that the standard diagnosis "recurrent models fail at long horizons because gradients vanish/explode" is incomplete. Dense per-token losses can still train a shared recurrent rule even when long-path gradients decay severely. The more precise object is **state credit**: the signal by which future losses assign responsibility to earlier recurrent states before parameter gradients are formed.
+SpectralShift asks a practical question that becomes central once linear attention is deployed at long context: if a Gated DeltaNet was trained at 8K, why should its learned forgetting dynamics automatically remain appropriate at 64K or 128K?
 
-It proposes **Credit Stabilization through Time (CST)**. During backward propagation, CST rescales the state-credit signal locally to stabilize its norm while preserving the direction/component being corrected; the forward recurrence is unchanged.
+The paper studies the transition dynamics spectrally and identifies two desirable properties:
 
-This matters because length extrapolation is one of the central advertised advantages of recurrent/SSM-style language models: a fixed-size recurrent state does not intrinsically require positional extrapolation or a growing KV cache, but the recurrent rule may still fail when executed far beyond the training horizon.
+1. a sufficiently broad **slow spectral band** whose decay timescale matches the target dependency length;
+2. preservation of **fast-decaying modes** needed to clear stale state and switch context.
 
-#### Evidence
+The method modifies only the GDN alpha projection before long-context continued pretraining. For reference length `L_ref` and target length `L_tar`, the released implementation uses
 
-The paper reports improvements on controlled synthetic tasks and real-data settings, with gains observed at evaluation lengths up to **128x the training length**.
+` s = sqrt(L_ref / L_tar) `
 
-#### Limitations / evidence quality
-
-- v1 preprint and currently a single-author result.
-- The strongest headline is length extrapolation, not broad language-model quality.
-- The result needs replication across larger model families and training scales before treating CST as a general replacement for ordinary BPTT recipes.
-- The intervention is in the backward pass; it does not directly improve state capacity, associative recall, or retrieval precision.
-
-#### Assessment
-
-**Conceptually important.** This is a useful refinement of the classical vanishing/exploding-gradient story. Track it as a training/credit-assignment line alongside architectural work such as Mamba/GDN and recurrent-depth work such as RecurTrace/Looped Flows.
-
----
-
-### 3. Global Divergence, Local Convergence: Representation Geometry in SSMs and Transformers
-
-**Status:** NEW — rigorous comparative analysis; arXiv v1, 2026-09-08  
-**Authors:** Amit Ben-Artzy, Roy Schwartz  
-**Primary source:** https://arxiv.org/abs/2609.08692
-
-#### Contribution
-
-This work compares internal representation geometry in Transformers, SSMs, and hybrid models rather than comparing only perplexity or throughput.
-
-Main findings reported by the authors:
-
-- SSM representations distribute variance/information more evenly across dimensions.
-- Transformer representations are much more dominated by a single principal direction.
-- In hybrid models, attention layers progressively push representations toward this more anisotropic/skewed geometry.
-- Despite different global geometry, effective representational capacity is reported to be closely matched.
-- Rank-constrained probes suggest concepts occupy subspaces of similar dimensionality in both families.
-- At the local level (topic manifolds and nearest-neighbor token neighborhoods), SSM and Transformer representations are highly aligned.
+and rescales the centered alpha-projection weights plus the alpha-projection learning rate by `s`. The goal is not to make every gate uniformly slower, but to reshape the distribution of recurrent decay timescales.
 
 #### Relation to prior work
 
-This complements architectural duality results such as Mamba-2/SSD. Mamba-2 shows algebraic/computational relationships between SSMs and attention. This paper asks whether differently implemented models also converge toward similar semantic structures internally.
+This is not a successor to Gated DeltaNet/KDA/GDN-2 in the sense of a new update rule. It is a **context-extension/training method for the existing recurrent dynamics**. It adds a new axis to the architecture map: state memory is controlled not only by write/erase gates but also by the **spectrum of effective retention timescales**.
 
-It is also relevant to the broader question of whether SSMs are merely compressed approximations of Transformer representations. The reported answer is more nuanced: **global latent geometry differs, but local semantic organization can converge strongly.**
-
-#### Limitations / evidence quality
-
-- Analysis/probing work rather than a causal architectural intervention.
-- Conclusions depend on the model families, layers, and datasets studied; geometric results should not automatically be generalized to every SSM or hybrid.
-- Similar probe dimensionality does not prove identical functional mechanisms.
-
-#### Assessment
-
-**Important evaluation/mechanistic result, not an architectural advance.** Particularly useful for connecting architecture research to representation geometry.
-
----
-
-### 4. Looped GPT-BERT: Trading Parameters for Computation in Small Language Modeling
-
-**Status:** NEW — supporting evidence for recurrent depth; arXiv v1, 2026-09-09  
-**Authors:** Tingshuo Fan, Hongtao Mu, Tianyu Zhou, Hansen Liu, Tao Ji  
-**Primary source:** https://arxiv.org/abs/2609.09691
-
-#### Contribution
-
-Tests depth-wise parameter sharing in the BabyLM 2026 Strict-small regime. The final model uses **4 physical layers traversed 12 times** (`4x12`) and 12.18M parameters, explicitly trading stored parameters for recurrent computation.
-
-This provides a clean small-model demonstration of the recurrent-depth thesis: a small set of physical layers can be reused to obtain a larger effective computational depth.
+It also connects naturally to classical SSM thinking, where eigenvalues/poles determine memory timescales. In that sense, SpectralShift brings an explicitly spectral SSM-style viewpoint back into modern GDN long-context training.
 
 #### Evidence
 
-- Training corpus: 7.48M English words.
-- BabyLM 2026 leaderboard: Overall Average **35.42**, NLP Average **48.48**.
-- Comparable results to public 10M Strict-small GPT-2/GPT-BERT baselines on selected metrics such as BLiMP and GLUE with fewer parameters.
+The released main table evaluates a **1.5B-A0.6B GDN-MoE** base model trained for 500B tokens at 8K and then extended to 32K/64K/128K.
 
-The paper's own ablations also reveal an important counterpoint: additional loops help some tasks, while having very few distinct physical layers can constrain representational diversity and hurt others.
+Selected reported results:
 
-#### Limitations / evidence quality
+- 8K -> 32K, 10B continued-pretraining tokens: RULER at 32K improves **40.6 -> 45.8**.
+- staged 64K extension (10B + 10B): RULER at 64K improves **41.6 -> 45.4**.
+- staged 128K extension (10B + 10B): mean RULER over 8K/16K/32K/64K/128K improves **52.38 -> 55.18**; general-task average also rises **53.7 -> 54.8**.
 
-- Very small model and very small-data regime.
-- Not evidence that the same parameter/computation tradeoff holds at multi-billion-parameter LLM scale.
-- Gains are mixed across tasks rather than uniformly dominant.
+The effect is therefore meaningful but not an architecture-level discontinuity.
+
+#### Limitations
+
+- One principal 1.5B GDN-MoE setting; no evidence yet at frontier-scale hybrid models.
+- No 1M-context validation.
+- The long-context recipe still includes adaptations for the softmax-attention layers, so attribution is not perfectly isolated to GDN.
+- It improves retention timescales but does not solve fixed-state capacity or exact binding/retrieval by itself.
 
 #### Assessment
 
-**Incremental/supporting evidence.** Keep as a clean empirical example of recurrent depth and parameter sharing, but below RecurTrace and Looped Flows in priority.
+**Incremental architecture-wise, conceptually useful and practically important.** It strengthens the view that long-context recurrent models need explicit control of their decay spectrum. Add **timescale spectrum** to the core memory-design checklist.
+
+---
+
+### 2. Recurrent Looped Transformer (RLT) — original report updated, then independently stress-tested
+
+**Original report:** Yifan Zhang, Jichen Feng, Shihan Qin — technical report, 2026-09-12; updated 2026-09-17  
+**Primary:** https://github.com/yifanzhang-pro/recurrent-looped-tranformer  
+**Independent evaluation:** Leon Lehmann, Casie Nakamura / Empero AI — 2026-09-15  
+**Evaluation page:** https://www.alphaxiv.org/abs/2609.recurrence-looped-transformer-evaluation  
+**Code:** https://github.com/empero-org/rlt-evaluation
+
+#### What changed
+
+The initial RLT report was largely an architectural specification. The September 17 update added controlled algorithmic experiments, while an independent evaluation tested the same central idea in ordinary language-model pretraining.
+
+RLT uses a causal encoder plus a decoder that carries its final hidden state and layerwise sliding-window cache from token to token. This creates a recurrent computation path whose depth grows with sequence length.
+
+Important distinction: this is primarily **token-time recurrence**. It does not give one token an arbitrary number of internal loop iterations before advancing; the long path appears because later tokens inherit prior decoder state.
+
+#### Evidence from the updated original report
+
+The updated repository reports small ~25-29M-parameter depth-eight experiments on six algorithmic tasks.
+
+Positive cases include:
+
+- parity: some RLT splits retain **100% accuracy at length 256**, versus about **50%** for the 8-layer Transformer;
+- swaps-S5 at 512 operations: one RLT split reports **55.7% final-state accuracy** versus **0.85%** for the Transformer, although variance is large.
+
+But the gains are highly task-dependent:
+
+- 32-digit addition remains poor for all models (~15-17% teacher-forced token accuracy);
+- standard S5 remains near floor for all models;
+- modular-arithmetic gains are inconsistent and seed-sensitive.
+
+Crucially, the updated report says matched **RLT-0** experiments (same surrounding architecture but hidden-state feedback removed) are still needed to isolate whether the recurrent feedback itself causes the gains. Hardware throughput and RL performance are also not yet measured in that report.
+
+#### Independent controlled language-model evaluation
+
+The Empero evaluation implements exact recurrence and pretrains ~50M and ~140M models on the same 500M-token stream, comparing against parameter-matched Transformers and an RLT ablation with feedback disabled.
+
+Reported results:
+
+- ~50M: RLT and Transformer are effectively tied in held-out loss (**3.8845 vs 3.8841 nats**).
+- ~140M: RLT is worse (**3.6884**) than both feedback-disabled RLT (**3.6664**) and the Transformer (**3.6420**).
+- the feedback effect does not grow usefully with document position;
+- no context-length extrapolation advantage is observed at 1024/2048/4096;
+- exact recurrent training remains very expensive even after custom kernels: about **8.4K tok/s** per RTX 5090 versus **124K tok/s** for the Transformer in the reported main setup; the recurrent run used roughly **20x** the GPU-hours.
+
+#### Interpretation
+
+These results do not show that recurrence is useless. They show something narrower and important:
+
+> **A long sequential recurrent path is not, by itself, evidence of useful latent reasoning or efficient effective depth.**
+
+RLT is currently **strengthened for specific algorithmic state-tracking tasks but weakened as a general-purpose language-model architecture claim**. The strongest evidence now argues that its benefits are task- and scale-dependent and that naive per-token recurrence carries a severe training-parallelism cost.
+
+#### Limitations of the negative result
+
+- only ~50M-140M parameter models;
+- 500M training tokens;
+- one main architectural recipe and dataset mixture;
+- does not test billion-scale state-tracking-heavy tasks or more sophisticated recurrent gating/chunking.
+
+#### Assessment
+
+**Important contradictory evidence.** RLT should no longer be treated as a promising architecture on specification alone. Keep it as a test case for the distinction between **temporal path length** and **useful adaptive computation**.
+
+---
+
+### 3. LSTM-UT and Recurrent-Depth Transformers on Cellular Automata
+
+**Status:** NEW — arXiv v1, 2026-09-17  
+**Author:** Aras Kavuncu  
+**Primary:** https://arxiv.org/abs/2609.19521
+
+#### Contribution
+
+This paper directly studies **memory design across recurrent-depth iterations**. It compares:
+
+- **Block Universal Transformer (BUT):** carries only the current state;
+- **CoTFormer:** keeps an expanding cache of prior recurrent-depth states;
+- **LSTM Universal Transformer (LSTM-UT):** introduces bounded gated memory.
+
+The key result is counterintuitive: having explicit access to a growing history does not automatically improve recurrent-depth reasoning. On Rule 30 cellular automata, BUT extrapolates to unseen recurrence depths more reliably than CoTFormer. State/cache interventions suggest that CoTFormer's retained history can undermine a corrected current state. In delayed recall, CoTFormer also struggles to select the requested cached representation.
+
+LSTM-UT improves both depth extrapolation and delayed recall over the two baselines in the reported tasks.
+
+#### Relation to RecurTrace / Loop Memory Attention
+
+This is especially relevant to RecurTrace. RecurTrace makes prior loop states explicitly addressable; LSTM-UT shows that **addressability without sufficiently good selection/gating can be harmful**.
+
+That does not contradict RecurTrace directly—the mechanisms and tasks differ—but it weakens a naive interpretation that "keeping more loop states" is intrinsically better. The design question becomes:
+
+- what should be retained;
+- how should it be gated/compressed;
+- when should old loop states be ignored even if they remain accessible?
+
+#### Limitations
+
+- cellular automata + delayed-recall tasks rather than natural-language pretraining;
+- single-author v1 preprint;
+- no evidence yet at LLM scale;
+- exact numerical gains need to be interpreted within the narrow synthetic setting.
+
+#### Assessment
+
+**Conceptually important, evidence still narrow.** It strengthens the case for **bounded, gated loop-time memory** and adds a useful counterweight to expanding-cache recurrent-depth designs.
+
+---
+
+### 4. The Attention Within: Consensus Dynamics in Selective State Space Models
+
+**Status:** NEW — arXiv v1, 2026-09-16  
+**Authors:** João Pedro Silvestre, Álvaro Rodríguez Abella, Paulo Tabuada  
+**Primary:** https://arxiv.org/abs/2609.17997
+
+#### Contribution
+
+This is a theoretical/mechanistic SSM paper rather than a new architecture. It asks whether the token-mixing recurrence in selective SSMs has an analogue of the **consensus/over-smoothing dynamics** studied in attention models.
+
+Using a dynamical-systems/ODE view and input-to-state stability arguments, the authors establish local exponential stability of consensus equilibria and characterize a domain of attraction for time-varying weight matrices.
+
+Numerical experiments on pretrained Mamba-2 point to the **output gate** as a mechanism that regulates the approach to consensus and prevents complete collapse.
+
+#### Relation to prior work
+
+- **Mamba-2 / SSD** gives an algebraic/computational bridge between SSMs and attention.
+- **Global Divergence, Local Convergence** found different global representation geometry but strong local semantic alignment.
+- This paper adds a **dynamical-systems bridge**: the recurrence itself can aggregate tokens toward consensus in a way structurally analogous to attention.
+
+#### Limitations
+
+- local stability theory does not imply every trained SSM will converge to harmful representational collapse;
+- numerical validation centers on Mamba-2 and does not establish universality across Mamba-3, GDN, RWKV, etc.;
+- no causal demonstration that changing consensus strength improves LM quality.
+
+#### Assessment
+
+**Conceptually important theoretical evidence.** It strengthens the SSM-attention connection beyond implementation-level duality and is especially relevant to studying gates/Jacobians/stability as architecture diagnostics.
+
+---
+
+### 5. Register Tokens for Bounded-State Reasoning in Diffusion Language Models
+
+**Status:** NEW — watchlist/cross-paradigm evidence; arXiv v1, 2026-09-14  
+**Authors:** Albert Ge, Chandan Singh, Yufan Zhuang, Xiaodong Liu, Jianfeng Gao, Frederic Sala  
+**Primary:** https://arxiv.org/abs/2609.16372
+
+Masked diffusion LMs are not classical RNNs/SSMs, but this paper is relevant to the core bounded-state question. It trains a small number of continuous **register tokens** to carry reasoning progress across generation chunks while previously generated text is cleared.
+
+On LLaDA and Dream, the reported register-state approach beats discrete-text carry on every evaluated benchmark, with gains up to **+8.5 points on math** and **+19.5 on code**.
+
+**Assessment:** keep on the watchlist. It is additional evidence that a learned fixed-size continuous state can preserve useful reasoning progress across chunk boundaries, but it does not yet tell us whether the same mechanism scales to standard autoregressive LLMs or substitutes for token-time recurrent memory.
 
 ---
 
@@ -174,188 +242,242 @@ The paper's own ablations also reveal an important counterpoint: additional loop
 
 **S4 -> LRU -> Mamba -> Mamba-2 -> Mamba-3**
 
-- **Mamba** — selective SSMs made state updates input-dependent and brought SSMs into serious language-model competition.  
+- **S4** — structured SSM foundation for efficient long-sequence modeling.  
+  Primary: https://arxiv.org/abs/2111.00396
+- **LRU** — shows that carefully parameterized/initialized linear recurrence can recover much of modern SSM behavior.  
+  Primary: https://arxiv.org/abs/2303.06349
+- **Mamba** — selective/input-dependent SSM updates.  
   Primary: https://arxiv.org/abs/2312.00752
-- **Mamba-2 / State Space Duality** — unifies structured SSM computation with attention-like matrix views and improves hardware efficiency.  
+- **Mamba-2 / State Space Duality** — stronger algebraic connection between SSMs and structured attention-like matrices plus efficient algorithms.  
   Primary: https://proceedings.mlr.press/v235/dao24a.html
-- **Mamba-3** — ICLR 2026 Oral; improves state tracking, discretization/expressivity, MIMO structure, and real decoding efficiency.  
+- **Mamba-3** — ICLR 2026 Oral; improved discretization, complex-valued state dynamics/state tracking, MIMO formulation, and inference-first hardware design.  
   Primary: https://arxiv.org/abs/2603.15569
 
-**Current status:** still central and **unchanged this run**. No new Mamba paper/revision found that supersedes Mamba-3.
+**Current status (2026-09-19): STILL CENTRAL, unchanged architecturally this run.** No new Mamba successor/revision was found that displaces Mamba-3. The new consensus-dynamics paper strengthens the theoretical analysis line around Mamba-2 rather than changing the architecture frontier.
 
 ### Linear attention / associative-memory line
 
 **Linear attention -> GLA -> DeltaNet -> Gated DeltaNet -> KDA/Kimi Linear -> Gated DeltaNet-2 / Kalman Delta Networks**
 
-- **Gated DeltaNet** combines global forgetting/gating with delta-rule associative-memory updates.  
+- **Gated DeltaNet** — combines global forgetting with targeted delta-rule associative-memory updates.  
   Primary: https://openreview.net/forum?id=r8H7xhYPwz
-- **Kimi Linear / KDA** adds more granular gating and demonstrates a large hybrid architecture.  
+- **Kimi Linear / KDA** — channel-wise decay/gating and a large hybrid KDA + MLA architecture.  
   Primary: https://arxiv.org/abs/2510.26692
-- **Gated DeltaNet-2** decouples erase and write operations.  
+- **Gated DeltaNet-2** — decouples erase and write decisions.  
   Primary: https://arxiv.org/abs/2605.22791
-- **Kalman Delta Networks (KDN)** adds explicit uncertainty/confidence tracking to associative memory, interpreting ordinary delta-style updates as an approximation to Kalman filtering when covariance tracking is collapsed.  
+- **Kalman Delta Networks (KDN)** — adds explicit uncertainty/confidence tracking to associative memory and interprets ordinary delta-style updates as a collapsed Kalman-filter approximation.  
   Primary: https://arxiv.org/abs/2609.07816
+- **SpectralShift** — new this run; calibrates GDN retention timescales during long-context extension rather than changing the base update rule.  
+  Primary: https://arxiv.org/abs/2609.14320
 
-**Current assessment:** KDN remains the most interesting recent conceptual extension of the write/erase line. **Still relevant; no substantive revision found this run.** The open question is whether uncertainty-aware updates retain their advantage at much larger LLM scale and in hybrid models.
+**Current assessment:** KDN remains the most interesting recent conceptual extension of the update rule; SpectralShift is the most relevant new **long-context training/retention-timescale** result. Neither supersedes the other.
 
 ### RWKV
 
-- **RWKV original** establishes train-parallel / infer-recurrent language modeling.  
+- **RWKV original** — train-parallel / infer-recurrent language modeling.  
   Primary: https://arxiv.org/abs/2305.13048
-- **RWKV-7 Goose** adds more expressive dynamic-state updates, vector-valued gates, and stronger state-tracking theory.  
+- **RWKV-7 Goose** — more expressive dynamic-state updates, vector-valued gates, stronger state-tracking/formal-language analysis.  
   Primary: https://arxiv.org/abs/2503.14456
 
-**Current status:** still relevant; **no material update this run**.
+**Current status:** STILL RELEVANT; no material update found this run.
 
 ### xLSTM
 
-- **xLSTM** modernizes the LSTM family with exponential gating and matrix memory.  
+- **xLSTM** — exponential gating plus scalar/matrix memories, direct modern continuation of the LSTM line.  
   Primary: https://arxiv.org/abs/2405.04517
-- **xLSTM 7B** demonstrates a recurrent LM at multi-billion scale.  
+- **xLSTM 7B** — multi-billion-parameter recurrent LM evidence.  
   Primary: https://arxiv.org/abs/2503.13427
-- **xLSTM Scaling Laws** studies scaling behavior and compute/quality tradeoffs.  
+- **xLSTM Scaling Laws** — scaling/compute-quality analysis.  
   Primary: https://openreview.net/forum?id=bpbU549sSg
 
-**Current status:** still relevant; **no new result found this run that changes the assessment**.
+**Current status:** STILL RELEVANT; no substantive new result found this run.
 
 ### Griffin / RecurrentGemma and hybrids
 
-- **Griffin/Hawk**: gated linear recurrence plus local attention.  
+- **Griffin/Hawk** — gated linear recurrence + local attention.  
   Primary: https://arxiv.org/abs/2402.19427
-- **RecurrentGemma**: open scaled implementation of the Griffin line.  
+- **RecurrentGemma** — open scaled implementation of the Griffin line.  
   Primary: https://arxiv.org/abs/2404.07839
 
-**Current status:** conceptually important as early evidence that recurrence and local attention are complementary. No new Griffin/RecurrentGemma research update found this run.
+**Current status:** STILL RELEVANT as early evidence that recurrence and local attention are complementary; no new Griffin/RecurrentGemma update found this run.
 
 ---
 
 ## Active recurrent-depth / loop-time line
 
-### RecurTrace — still relevant
+### RecurTrace — still relevant, interpretation refined
 
 **Primary:** https://arxiv.org/abs/2609.03379  
 **Status:** arXiv preprint, 2026-09-03
 
-RecurTrace adds **Loop Memory Attention**, allowing each looped layer to access its own hidden states from previous recurrent-depth iterations, plus a learned halting mechanism. This changes a Markov-like loop `z_r = F(z_{r-1})` into a recurrence with an explicitly addressable short history across loop-time.
+RecurTrace adds **Loop Memory Attention**, allowing each looped layer to query a short explicit history of its own previous recurrent-depth states, plus learned halting.
 
-**Assessment:** still relevant and now **strengthened by the appearance of Looped Flows**. Together they suggest recurrent depth has split into multiple subproblems:
+**Current assessment:** STILL RELEVANT. Looped Flows strengthens the broader recurrent-depth direction, while LSTM-UT adds an important caution: explicitly retaining more loop history can hurt if retrieval/gating is poorly controlled. RecurTrace should therefore be evaluated not only on whether it exposes prior states, but on whether its selection and gating reliably prevent stale-history interference.
 
-- memory/access across loops (RecurTrace),
-- adaptive halting/compute allocation (RecurTrace),
-- temporal credit assignment/training stability (Looped Flows),
-- parameter-vs-compute tradeoff in small LMs (Looped GPT-BERT).
+### Thinking with Looped Flows — still high priority
 
-### Thinking with Looped Flows — new leader in training methodology
+**Primary:** https://arxiv.org/abs/2609.11801  
+**Status:** arXiv v1, 2026-09-10
 
-See the new-item section above. This should now be treated as one of the highest-priority recurrent-depth papers to follow.
+Introduces a stateful denoising / probability-flow formulation to improve temporal credit assignment in recurrent-depth reasoning without full long-horizon BPTT. Reported ARC-AGI results substantially exceed TRM under the same architecture in the paper's setting.
+
+**Assessment:** STILL HIGH PRIORITY; no contradictory evidence found this run. Main uncertainty remains transfer to large autoregressive LMs.
+
+### Learning Length-Extrapolatable Recurrent Models / CST — still relevant
+
+**Primary:** https://arxiv.org/abs/2609.09157  
+**Status:** arXiv v1, 2026-09-08
+
+Reframes long-horizon recurrent training around **state credit** rather than only parameter-gradient vanishing/explosion and proposes Credit Stabilization through Time.
+
+**Assessment:** STILL CONCEPTUALLY IMPORTANT; awaits replication at larger LM scale.
 
 ### Looped GPT-BERT — supporting evidence
 
-Useful for parameter sharing and small-model data efficiency, but not yet strong evidence for frontier LLMs.
+**Primary:** https://arxiv.org/abs/2609.09691
+
+Small-model evidence that physical depth can be traded for repeated computation, but with mixed task-level gains and no frontier-scale validation.
+
+### LSTM-UT — new bounded-memory branch
+
+**Primary:** https://arxiv.org/abs/2609.19521
+
+Adds bounded gated memory across loop-time and outperforms current-state-only and expanding-cache baselines on the reported synthetic tasks. Track as a memory-design result rather than a general LLM breakthrough.
+
+### Recurrent Looped Transformer (RLT) — moved to mixed/contested status
+
+**Primary:** https://github.com/yifanzhang-pro/recurrent-looped-tranformer
+
+RLT is included here because it is frequently discussed as "infinite depth," but its recurrence is mostly **across tokens**, not repeated refinement of one token/state before advancing. The latest evidence is mixed: strong synthetic state-tracking in some tasks, but no advantage in an independent 50M-140M language-model study and a severe sequential-training cost.
+
+**Status:** WEAKENED AS A GENERAL LM CLAIM; STILL INTERESTING AS A STATE-TRACKING ARCHITECTURE.
 
 ---
 
-## Recent evidence carried forward from previous reports
+## Recent evidence carried forward
 
 ### What Attention Recalls and Recurrence Controls in Hybrid Language Models
 
 **Primary:** https://arxiv.org/abs/2609.04434  
 **Status:** arXiv preprint, 2026-09-03  
-**Assessment:** **still relevant; strengthened conceptually by newer hybrid/geometry evidence.**
+**Assessment:** **STRENGTHENED / still central.**
 
 Causal cache/state interventions in Qwen3.5-4B and Falcon-H1-3B suggest a functional division:
 
 - attention/KV state preserves exact, addressable item retrieval and bindings;
 - recurrent state preserves more compressed semantic/behavioral context such as language/persona/style.
 
-This is currently one of the strongest arguments for viewing hybrids as **complementary memory systems**, not merely compromises between quality and efficiency.
+This remains one of the strongest empirical arguments for hybrids as **complementary memory systems** rather than simple quality/efficiency compromises.
+
+### Global Divergence, Local Convergence: Representation Geometry in SSMs and Transformers
+
+**Primary:** https://arxiv.org/abs/2609.08692  
+**Status:** arXiv v1, 2026-09-08  
+**Assessment:** **STILL RELEVANT; now complemented by consensus-dynamics theory.**
+
+Finds strongly different global representation geometry between SSMs and Transformers but much closer local semantic organization. The new consensus-dynamics paper adds a dynamical explanation for how the mechanisms can differ globally while still sharing aggregation behavior.
 
 ### Why Gated DeltaNet Survives 4-Bit Quantization
 
 **Primary:** https://arxiv.org/abs/2609.04098  
 **Status:** arXiv preprint, 2026-09-03  
-**Assessment:** **still relevant, practical evidence.**
+**Assessment:** **STILL RELEVANT practical/mechanistic evidence.**
 
-The main mechanistic result is that GDN state error does not simply accumulate indefinitely under 4-bit quantization; delta-rule updates can overwrite/correct parts of recurrent-state error as new associations arrive. This suggests some recurrent associative-memory rules are partially self-correcting numerically.
+GDN state error does not simply accumulate indefinitely under the tested 4-bit quantization; delta-rule updates can overwrite/correct portions of recurrent-state error.
 
 ### Modern Transformers Are Implicit Hybrids
 
 **Primary:** https://arxiv.org/abs/2609.02986  
 **Status:** arXiv preprint, 2026-09-02  
-**Assessment:** **still promising but not yet strongly validated at frontier scale.**
+**Assessment:** **STILL PROMISING, not yet validated at frontier scale.**
 
-Proposes head-wise rather than layer-wise assignment of full vs linear attention based on different functional roles. It aligns with evidence that exact retrieval and compressed recurrent memory benefit from different mechanisms.
+Proposes head-wise assignment of full vs linear attention according to functional role. The hybrid-memory evidence above remains consistent with this direction.
 
 ### Curvature-Conditioned Query (CCQ)
 
 **Primary:** https://arxiv.org/abs/2606.01294  
 **Status:** EMNLP 2026 camera-ready revision reported 2026-08-30  
-**Assessment:** **still relevant.**
+**Assessment:** **STILL RELEVANT.**
 
-Important because it shifts focus from write/erase dynamics to **read dynamics**: how a query interrogates an already-compressed linear-attention state. This completes the useful conceptual decomposition of recurrent memory into write, erase, read, uncertainty, and serving.
+Shifts focus from write/erase dynamics to **read dynamics**: how a query interrogates compressed linear-attention state.
 
 ### Tail-Replay
 
 **Primary:** https://arxiv.org/abs/2608.30310  
 **Status:** arXiv preprint, 2026-08-31  
-**Assessment:** **still relevant as serving/system evidence.**
+**Assessment:** **STILL RELEVANT as serving/system evidence.**
 
-Treats gated linear-attention state as structured lossy compression and reconstructs matched-prefix state by replaying only a recent suffix. Useful evidence that hybrid recurrent models are mature enough to create distinct prefix-caching/serving problems.
+Treats gated linear-attention state as structured lossy compression and reconstructs matched-prefix state by replaying only a recent suffix.
 
 ---
 
-## New peripheral/watchlist items
+## Peripheral / watchlist
+
+### Register Tokens for Bounded-State Reasoning in Diffusion Language Models
+
+**Primary:** https://arxiv.org/abs/2609.16372  
+**Status:** 2026-09-14 arXiv v1  
+**Assessment:** WATCHLIST — useful cross-paradigm bounded-state evidence, not a direct RNN/SSM result.
 
 ### RiLM: Parameter-Efficient Language Modeling via Geodesic Decoding
 
 **Primary:** https://arxiv.org/abs/2609.10305  
-**Date/status:** 2026-09-09, arXiv v1
+**Status:** 2026-09-09 arXiv v1
 
-Uses a recurrent language-model trajectory on a Riemannian manifold and removes the conventional output projection, decoding next-token probabilities via geodesic distance to vocabulary embeddings. Hyperbolic variants outperform matched tiny LSTM/Transformer/SSM controls in the reported sub-million-parameter experiments.
+Uses a recurrent trajectory on a Riemannian manifold and geodesic vocabulary decoding. Interesting geometry, but current evidence is tiny/sub-million-parameter.
 
-**Assessment:** **deprioritized/watchlist.** The geometry is interesting, but the evidence is intentionally scoped to tiny models, small vocabularies, and controlled corpora. It is not yet evidence about modern LLM-scale recurrent architectures.
+**Assessment:** DEPRIORITIZED / WATCHLIST.
 
 ### ConvMem: Convolutional Memory for Long-Context Reasoning
 
 **Primary:** https://arxiv.org/abs/2609.10441  
-**Date/status:** 2026-09-09, arXiv v1
+**Status:** 2026-09-09 arXiv v1
 
-Replaces a sequential chunk-memory chain with hierarchical convolution/tree-style summarization using an LLM as the kernel, reducing the reasoning path from linear to logarithmic depth and enabling parallelism.
+Hierarchical/tree-style context summarization rather than a new recurrent sequence-model architecture.
 
-**Assessment:** **peripheral to this stream.** Relevant to long-context memory and recurrence at the system level, but it is primarily a context-processing/orchestration method rather than a new recurrent sequence-model architecture.
+**Assessment:** PERIPHERAL to this stream.
 
 ---
 
 ## Main open questions
 
-1. **State capacity vs exact recall:** how much exact binding/retrieval can fixed-state models recover without reintroducing an explicit addressable memory?
-2. **Functional specialization in hybrids:** can we learn routing between full attention and recurrent/linear memory rather than fixing layer/head patterns manually?
-3. **Uncertainty-aware memory:** does KDN-style covariance/confidence tracking remain useful at 7B+ and frontier-scale training?
-4. **Read dynamics:** can CCQ-like query conditioning close a meaningful part of the recall gap without increasing state size?
-5. **Length extrapolation:** does state-credit stabilization remain effective for large language models trained on real long-context corpora?
-6. **Recurrent depth scaling:** do RecurTrace/Looped Flows benefits survive at general-purpose LLM scale, or are they primarily reasoning-specialist effects?
-7. **Loop-time memory:** how should models choose what intermediate computations to preserve, compress, and revisit across recurrent-depth iterations?
-8. **Token-time vs loop-time recurrence:** can the two be composed effectively—e.g. a recurrent/SSM token mixer whose internal computation itself uses adaptive recurrent depth?
-9. **Hardware reality:** which theoretically linear/recurrent mechanisms deliver end-to-end latency and memory advantages on production accelerators after kernel, batching, and prefix-cache constraints are included?
-10. **Geometry and function:** do the global geometry differences between SSM and Transformer representations causally affect robustness, compression, continual memory, or interpretability, or are they mostly reparameterizations with locally similar semantics?
+1. **State capacity vs exact recall:** how much exact binding/retrieval can fixed-state models recover without reintroducing explicit addressable memory?
+2. **Functional specialization in hybrids:** can routing between full attention and recurrent/linear memory be learned rather than hard-coded by layer/head?
+3. **Uncertainty-aware memory:** does KDN-style confidence/covariance tracking remain useful at 7B+ and frontier-scale training?
+4. **Read dynamics:** can CCQ-like query conditioning close a meaningful fraction of the recall gap without increasing state size?
+5. **Retention spectrum:** can SpectralShift-style timescale calibration generalize beyond GDN to KDA, Mamba, RWKV, xLSTM, or learned hybrid routing?
+6. **Length extrapolation:** does state-credit stabilization remain effective for large LMs on real long-context corpora?
+7. **Recurrent-depth memory:** when should loop history be explicit, compressed, gated, or discarded? LSTM-UT now makes stale-history interference a first-class concern.
+8. **Adaptive compute vs mere path length:** what measurements distinguish genuinely useful recurrent reasoning from simply creating a longer sequential graph? RLT's mixed evidence makes this urgent.
+9. **Token-time vs loop-time composition:** can a recurrent/SSM token mixer itself use adaptive recurrent depth without destroying training/inference efficiency?
+10. **Hardware reality:** which theoretically linear/recurrent mechanisms still win after kernels, batching, prefix caching, quantization, and sequential dependencies are included?
+11. **Geometry and function:** do SSM/Transformer global-geometry differences and consensus dynamics causally affect robustness, memory, interpretability, or continual learning?
+12. **Scaling validity:** many new positive results still sit in the 25M-1.5B range. Which mechanisms survive 7B-70B and trillion-token training?
 
 ---
 
 ## Compact historical / superseded material
 
-These items remain useful context but are not the highest-priority frontier readings:
+These remain useful context but are not the highest-priority frontier readings:
 
-- **S5 / intermediate S4 variants:** historically useful, but S4 -> LRU -> Mamba -> Mamba-2/3 is a more efficient route to the current SSM line.
-- **Intermediate RWKV versions:** useful for engineering history, but RWKV original + RWKV-7 captures the main conceptual trajectory for this research stream.
-- **RetNet:** still conceptually valuable for parallel/recurrent/chunkwise equivalence, but currently deprioritized relative to Mamba/GDN/Kimi/RWKV/xLSTM/hybrid lines.
-- **Many classical LSTM/GRU variants:** preserve only when a modern paper depends on a specific mechanism; xLSTM is the main active direct continuation of the LSTM lineage.
+- **S5 / intermediate S4 variants:** historically useful, but S4 -> LRU -> Mamba -> Mamba-2/3 is the more efficient current study route.
+- **Intermediate RWKV versions:** useful engineering history; RWKV original + RWKV-7 captures most of the conceptual trajectory for this stream.
+- **RetNet:** conceptually valuable for parallel/recurrent/chunkwise equivalence, but currently deprioritized relative to Mamba/GDN/Kimi/RWKV/xLSTM/hybrid lines.
+- **Many classical LSTM/GRU variants:** retain only when a modern paper depends on a specific mechanism; xLSTM is the main active direct continuation of the LSTM lineage.
+- **Naive "more recurrent cache is better" framing:** weakened by LSTM-UT's state/cache interventions; memory selection/gating must be treated as part of the architecture, not an afterthought.
+- **RLT as evidence-free architecture speculation:** superseded. The original report now has synthetic experiments and an independent LM evaluation exists; the correct status is mixed/contested rather than untested.
 
 ---
 
-## Bottom line as of 2026-09-12
+## Bottom line as of 2026-09-19
 
-The token-time frontier did **not** materially change this week: Mamba-3, Gated DeltaNet/KDA/GDN-2/KDN, RWKV-7, xLSTM, and hybrid attention-recurrence remain the major lines, with no new successor that clearly displaces them.
+The core frontier models themselves did **not** receive a clear successor this week: Mamba-3, RWKV-7, xLSTM, Gated DeltaNet/KDA/GDN-2/KDN, Griffin/RecurrentGemma, and hybrid attention-recurrence remain the main established lines.
 
-The meaningful movement is in **training and recurrent depth**. `Learning Length-Extrapolatable Recurrent Models` reframes long-horizon recurrent training around **state credit**, while `Thinking with Looped Flows` introduces a new way to train recurrent-depth reasoning using temporally aligned local denoising objectives and probability-flow inference. `Global Divergence, Local Convergence` adds useful evidence that SSMs and Transformers can have substantially different global representation geometry while converging on similar local semantic organization.
+The meaningful changes are more structural:
 
-The field is therefore broadening from the question "what recurrent update should replace attention?" toward a richer set of questions about **memory type, credit assignment, recurrent computation depth, uncertainty, retrieval, and hybrid specialization**.
+1. **SpectralShift** adds explicit **retention-timescale/spectral calibration** to long-context GDN training and produces consistent 32K-128K retrieval gains.
+2. **RLT now has contradictory evidence:** the updated original report shows strong gains on some algorithmic state-tracking tasks, while an independent ordinary-LM evaluation finds no quality benefit at 50M-140M and a large sequential-training penalty. This weakens the idea that longer recurrent paths automatically produce useful reasoning depth.
+3. **LSTM-UT** shows that expanding loop-history caches can interfere with corrected state, while bounded gated memory can work better on recurrent-depth extrapolation/recall.
+4. **The Attention Within** strengthens the theoretical bridge between selective SSM recurrence and Transformer attention via consensus dynamics, with the output gate appearing to regulate representational collapse in Mamba-2.
+
+The field is therefore moving away from a single question—"which linear/recurrent mixer replaces attention?"—toward a richer architecture science of **memory type, decay spectrum, confidence, read/write rules, bounded vs addressable loop memory, credit assignment, adaptive computation, and real hardware cost**.
