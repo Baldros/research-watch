@@ -27,3 +27,9 @@ The research should distinguish conceptual changes from incremental engineering 
 The document should preserve primary-source links, publication status, architectural relationships, benchmark context, experimental evidence, limitations, and unresolved questions. Prior papers or conclusions should be marked as still relevant, strengthened, weakened, contradicted, superseded, or deprioritized when new evidence changes the picture.
 
 Useful historical material should remain available in a compact archival section instead of being silently deleted, while the main body should reflect the best current conceptual map of modern recurrent, state-space, and hybrid sequence architectures.
+
+## Conceptual taxonomy
+
+The project now separates the broad idea of modern recurrence into several research lineages: RNN-native architectures, State Space Models (SSMs), recurrent linear attention / associative memory, recurrent-attention hybrids, and recurrent-depth / loop-time models.
+
+See [`taxonomy.md`](./taxonomy.md) for the durable conceptual map and the current classification of long-term-memory mechanisms. `research.md` remains the living evidence/frontier document and should be revised as new papers change those assessments.
