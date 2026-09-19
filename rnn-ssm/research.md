@@ -32,6 +32,21 @@ For loop-time memory, the emerging design questions are:
 
 **Core frontier status:** no new successor this run displaced Mamba-3, RWKV-7, xLSTM, Gated DeltaNet/KDA/GDN-2/KDN, Kimi Linear, Griffin, or RecurrentGemma. The meaningful changes were in long-context adaptation, looped-model inference, controlled evaluation, and memory dynamics.
 
+
+## Conceptual taxonomy used by this research stream
+
+The earlier working abstraction of **“modern RNNs”** has now been refined into distinct lineages. The umbrella term used here is **modern recurrent models**, with five main architectural families:
+
+1. **RNN-native / gated recurrent architectures** — classical RNN/LSTM descendants such as xLSTM, plus recurrent-native designs such as RWKV.
+2. **State Space Models (SSMs)** — S4/LRU/Mamba-style models, where long memory is framed primarily through state dynamics, stability, selectivity, and timescale spectrum.
+3. **Recurrent linear attention / associative memory** — DeltaNet, Gated DeltaNet, KDA, GDN-2, KDN, and related work, where the state is treated explicitly as finite associative memory and research focuses on write, erase, read, uncertainty, and interference.
+4. **Recurrent-attention hybrids** — Griffin/RecurrentGemma, Kimi Linear and related architectures that divide labor between compressed recurrent state and explicit addressable attention/KV memory.
+5. **Recurrent depth / loop-time models** — RecurTrace, Looped Flows, LSTM-UT and related models, where recurrence happens across repeated internal computation rather than merely across token positions.
+
+This refinement is important because **“improving long-term memory” is not a single research program**. Different papers target different problems: retention, capacity, write/erase rules, read dynamics, uncertainty, credit assignment, explicit addressability, or serving/reconstruction.
+
+A detailed conceptual map, including how the long-memory papers belong to each lineage, is maintained separately in [`taxonomy.md`](./taxonomy.md).
+
 ---
 
 # Material changes since the previous run
