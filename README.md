@@ -12,6 +12,7 @@ The repository stores curated primary-source links, technical comparisons, evolv
 | [Complexity-Guided Architecture](./complexity-guided-architecture/) | Track methods that relate measurable task/data complexity to neural-network architecture, especially width and depth. |
 | [RNN and SSM Advances](./rnn-ssm/) | Track modern recurrent models, state-space models, linear attention, and hybrid sequence architectures. |
 | [AI Security](./ai-security/) | Track research connecting model internals and training phenomena to system-level attack surfaces created by autonomy, tools, memory, and long-horizon execution. |
+| [LLM Post-Training](./llm-post-training/) | Track post-training algorithms, reward/evaluator systems, agentic RL, synthetic-data loops, scaling, stability, and evidence isolating post-training gains from model/data/compute effects. |
 | [Topological ML](./topological-ml/) | Track machine learning and deep learning methods that use topology, TDA, persistent homology, and higher-order structures. |
 | [Mesh Generation](./mesh-generation/) | Track academic advances in mesh generation for CAE, CFD, FEM, and scientific simulation. |
 
