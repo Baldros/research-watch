@@ -15,6 +15,7 @@ The repository stores curated primary-source links, technical comparisons, evolv
 | [LLM Post-Training](./llm-post-training/) | Track post-training algorithms, reward/evaluator systems, agentic RL, synthetic-data loops, scaling, stability, and evidence isolating post-training gains from model/data/compute effects. |
 | [Topological ML](./topological-ml/) | Track machine learning and deep learning methods that use topology, TDA, persistent homology, and higher-order structures. |
 | [Mesh Generation](./mesh-generation/) | Track academic advances in mesh generation for CAE, CFD, FEM, and scientific simulation. |
+| [Visual Models](./visual-models/) | Track computer-vision models and visual representation learning across major research ecosystems, beginning with Meta FAIR / Meta AI. |
 
 ## Repository model
 
