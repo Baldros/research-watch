@@ -10,6 +10,10 @@ The monitoring program is organized around three connected layers:
 2. **Loop, graph, and multi-agent engineering** — coordination topologies, decomposition, parallelism, single-vs-multi-agent tradeoffs, communication, shared state, evaluators, and stopping/retry policies.
 3. **AgentOps and production operation** — observability, tracing, reliability, fault injection, durable execution, checkpointing, idempotency, side effects, incident response, root-cause analysis, evals, CI gates, canarying, rollback, versioning, cost, tokens, latency, sandboxing, human oversight, and continuous operation.
 
+## Conceptual taxonomy
+
+See [taxonomy.md](./taxonomy.md) for the four-way classification of harness engineering (H1), self-evolving harnesses (H2), evolver weight–harness co-evolution (H3), and executor–harness co-adaptation (H4), including decision rules and evidence standards. These classes describe different optimization mechanisms rather than a proven historical progression. The taxonomy is conceptual; empirical findings and changing assessments remain in `research.md`.
+
 ## Evidence policy
 
 Academic papers, preprints, benchmarks, technical reports, white papers, engineering reports, production postmortems, experiments, and A/B tests may all be used when they contain concrete technical evidence.
