@@ -14,6 +14,19 @@ The monitoring program is organized around three connected layers:
 
 See [taxonomy.md](./taxonomy.md) for the four-way classification of harness engineering (H1), self-evolving harnesses (H2), evolver weight–harness co-evolution (H3), and executor–harness co-adaptation (H4), including decision rules and evidence standards. These classes describe different optimization mechanisms rather than a proven historical progression. The taxonomy is conceptual; empirical findings and changing assessments remain in `research.md`.
 
+## Scheduler ownership and manual synthesis
+
+Each of the four harness research categories has an independently maintained living evidence document:
+
+| Category | Scheduler-owned research memory |
+| --- | --- |
+| H1 — Harness Engineering | [h1-harness-engineering/research.md](./h1-harness-engineering/research.md) |
+| H2 — Self-Evolving Harness | [h2-self-evolving/research.md](./h2-self-evolving/research.md) |
+| H3 — Weight–Harness Co-Evolution | [h3-weight-harness/research.md](./h3-weight-harness/research.md) |
+| H4 — Executor–Harness Co-Adaptation | [h4-co-adaptation/research.md](./h4-co-adaptation/research.md) |
+
+**Write boundary:** each scheduled watcher may update only its own category's `research.md`. The root [research.md](./research.md) is reserved for **human-authored cross-category synthesis**: it is not a scheduler output, must never be automatically updated, migrated, overwritten, or reorganized by the watchers, and retains its historical material on multi-agent orchestration and AgentOps. Watchers may read it as context and link to findings across categories. [taxonomy.md](./taxonomy.md) is also not automatically edited. Cross-category conclusions are for the human researcher to incorporate deliberately.
+
 ## Evidence policy
 
 Academic papers, preprints, benchmarks, technical reports, white papers, engineering reports, production postmortems, experiments, and A/B tests may all be used when they contain concrete technical evidence.
