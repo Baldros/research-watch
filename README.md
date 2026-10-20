@@ -9,6 +9,7 @@ The repository stores curated primary-source links, technical comparisons, evolv
 | Area | Purpose |
 | --- | --- |
 | [Agent Systems Engineering](./agent-systems-engineering/) | Track end-to-end agent engineering, harness design, multi-agent/graph systems, and production AgentOps. |
+| [Agent Memory](./agent-memory/) | Track memory storage/retrieval, lifecycle and forgetting, learned memory policies, and experience-to-skill reuse in LLM agents (M1–M4). |
 | [Complexity-Guided Architecture](./complexity-guided-architecture/) | Track methods that relate measurable task/data complexity to neural-network architecture, especially width and depth. |
 | [RNN and SSM Advances](./rnn-ssm/) | Track modern recurrent models, state-space models, linear attention, and hybrid sequence architectures. |
 | [AI Security](./ai-security/) | Track research connecting model internals and training phenomena to system-level attack surfaces created by autonomy, tools, memory, and long-horizon execution. |
@@ -32,6 +33,10 @@ Each topic directory maintains a single living research document:
 The research file is **not an append-only weekly log**. On each run, the scheduler should read the existing state, search for new evidence, and then revise the document so it reflects the best current understanding of the area. New papers may be added, prior conclusions may be strengthened or weakened, and older material may be marked as contradicted, superseded, or deprioritized when the evidence changes.
 
 Useful historical context should be preserved rather than silently deleted. Superseded or lower-priority material can be moved into compact archival sections within the same document.
+
+### Category-owned programs
+
+Some programs, such as [Agent Systems Engineering](./agent-systems-engineering/) and [Agent Memory](./agent-memory/), have separately scheduled category `research.md` files. Their parent `research.md` documents are **human-owned transversal syntheses** and are read-only to all scheduled watchers; see their local README/taxonomy for explicit write boundaries.
 
 ## Design goals
 
