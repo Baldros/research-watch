@@ -10,7 +10,7 @@ The repository stores curated primary-source links, technical comparisons, evolv
 | --- | --- |
 | [Agent Systems Engineering](./agent-systems-engineering/) | Track end-to-end agent engineering, harness design, multi-agent/graph systems, and production AgentOps. |
 | [Agent Memory](./agent-memory/) | Track memory storage/retrieval, lifecycle and forgetting, learned memory policies, and experience-to-skill reuse in LLM agents (M1–M4). |
-| [Complexity-Guided Architecture](./complexity-guided-architecture/) | Track methods that relate measurable task/data complexity to neural-network architecture, especially width and depth. |
+| [Complexity-Guided Architecture Lab](https://github.com/Baldros/complexity-guided-architecture-lab) | **Moved to a dedicated repository.** Research on task/data complexity and neural-network width/depth now lives in the independent lab, with a separate historical discussion catalog. |
 | [RNN and SSM Advances](./rnn-ssm/) | Track modern recurrent models, state-space models, linear attention, and hybrid sequence architectures. |
 | [AI Security](./ai-security/) | Track research connecting model internals and training phenomena to system-level attack surfaces created by autonomy, tools, memory, and long-horizon execution. |
 | [LLM Post-Training](./llm-post-training/) | Track post-training algorithms, reward/evaluator systems, agentic RL, synthetic-data loops, scaling, stability, and evidence isolating post-training gains from model/data/compute effects. |
