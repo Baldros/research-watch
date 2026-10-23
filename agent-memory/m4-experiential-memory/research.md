@@ -1,6 +1,6 @@
 # M4 — Experiential & Procedural Memory — Living Research State
 
-_Last reviewed: 2026-10-20. First extended evidence pass. This scheduler owns only this file; [parent synthesis](../research.md), [taxonomy](../taxonomy.md), [study guide](../study.md), and sibling files are read-only._
+_Last reviewed: 2026-10-23. New evidence reconciled with the 2026-10-20 baseline; October papers are preprints and their results are author-reported. This scheduler owns only this file; [parent synthesis](../research.md), [taxonomy](../taxonomy.md), [study guide](../study.md), and sibling files are read-only._
 
 ## Current synthesis
 
@@ -8,7 +8,10 @@ _Last reviewed: 2026-10-20. First extended evidence pass. This scheduler owns on
 2. **Procedural memory spans a spectrum from retrieval to explicit skill artifacts.** Reflexion reuses episode-specific linguistic feedback; MemRL chooses useful episodic experiences by environmental feedback; Trace2Skill condenses multiple trajectories into portable skill instructions; Harness² carries forward experience from harness edits. These mechanisms should not be treated as equivalent. [E1–E4]
 3. **A transferable skill needs its own applicability conditions.** Boundary-Aware Skill Memory identifies a *skill imitation trap*: memories of successful trajectories can encourage incorrect tools on superficially similar tasks. More skills need not imply greater accuracy. [E5]
 4. **Consolidation can destroy useful experience.** Controlled ARC-AGI experiments show repeatedly rewritten memory banks can become worse than retaining episodes and even worse than not using memory. This is a cross-category counterexample from [M2](../m2-memory-lifecycle/research.md), especially relevant for M4's experience-to-procedure abstraction. [E6]
-5. **Procedural memory may itself become the object of training.** APEx alternates learning of Executor/Distiller/Planner and also performs skill-guided test-time adaptation; it crosses into [M3](../m3-learned-memory/research.md). Carefully name what is trained and avoid mistaking an external skill for a model-weight update. [E7]
+5. **Procedural memory may itself become the object of training.** APEx trains components of an Executor–Distiller–Planner pipeline. SPEM trains/uses an auxiliary graph-based skill selector alongside external Skill-DAGs. Distinguish such trained controllers from writing external skills with a frozen executor. [E7, E10]
+6. **New counterevidence: persistent abstractions can reproduce errors.** Anti-Persistence retains observed trajectories and outcomes while generating and then discarding task-specific guidance. On the authors' held-out tests this is stronger than always persisting distilled rules. This strengthens—but does not universally prove—the warning from E6. [E8]
+7. **Memory can cause regressions even with relevant prior experience.** MemDev-Bench explicitly measures rescue and harm in evolving repositories; failures arise when previously successful procedures are reused without reassessing fit. [E9]
+8. **Dependency-aware skills and transfer-specific evaluation are important emerging controls.** SPEM uses Skill-DAGs, SEPM uses shared task-dependency graphs and AFTER separates within-task improvement from cross-role and cross-model generalization. Strong observed results remain task- and budget-dependent. [E10–E12]
 
 ## Research boundaries
 
@@ -74,9 +77,49 @@ _Last reviewed: 2026-10-20. First extended evidence pass. This scheduler owns on
 - **Limits:** extremely important to isolate contribution of learned skill library from the training, planner updates, increased test-time optimization and possible backbone differences. Need freeze-policy/freeze-skill ablations and equal test-time compute; do not attribute all improvements to “memory.”
 - **Classification:** M4 primary for experience-to-procedure research, **M3 secondary for trained policy**, potentially post-training/harness cross-tag. The name “self-improvement” does not imply all weights are frozen.
 
-### Secondary cross-link — ReHarness (M2 primary)
+### E8 — More Memory, Worse Agents: Error Reproduction and Anti-Persistence in LLM Agents
 
-[ReHarness](https://arxiv.org/abs/2610.12668) revises earlier reflections after observing new task trajectories. It touches M4 through experience feedback, but its principal novelty is backward correction of existing memory and is maintained under [M2](../m2-memory-lifecycle/research.md).
+- **Ruhan Wang, Kishan Panaganti, Dongruo Zhou.** Submitted **2026-10-19**; arXiv v1 **preprint**. [Primary paper](https://arxiv.org/abs/2610.27406).
+- **Mechanism / substrate:** retains original task trajectories and outcomes in **external episodic memory**, but generates task-specific imitation/strategy/correction guidance only when queried and **discards that derived guidance after use**. A feedback-driven selector chooses the mode. The studied memory-update loop does **not** update executor weights.
+- **Evidence:** evaluations across **ALFWorld, WebShop and ScienceWorld** with multiple backbones and held-out tasks; the authors report higher mean held-out success and fewer LLM calls versus their studied persistent-abstraction designs. In the paper's targeted discard-versus-persist ablations, discard wins in the reported cases.
+- **Novelty relative to E6:** not only shows consolidation can become harmful, but directly tests **persistence of derived rules** as the design variable. Observed “error reproduction” paths are suggestive rather than universally established causal dynamics.
+- **Limitations:** three simulated environments, finite update rounds, author-run comparisons, and LLM-call count is **not** total token/FLOP/money cost. Raw experiences can grow indefinitely, and some stable verified skills may rationally be persisted. **M4 primary; M2 secondary** for retention policy.
+- **Assessment:** **high-priority alternative baseline** for any proposal claiming value from durable distilled skills.
+
+### E9 — MemDev-Bench: Does Memory Help Code Agents? Benchmarking Memory Systems over Real Repository Histories
+
+- **Guorui Chen, Tao Liu, Zhenzhen Huang et al.** Submitted **2026-10-20**; arXiv v1 **preprint / benchmark**. [Primary paper](https://arxiv.org/abs/2610.27524).
+- **Design:** **555 base tasks and 4,869 earlier repository tasks** with relevance-annotated, temporally ordered histories. Compares memory systems with no memory and raw past execution trajectories in code-agent workflows.
+- **Finding:** memory sometimes **rescues** failed tasks and sometimes **harms** previously solvable ones—even when histories are related. Wrong transfer occurs when the agent treats old solutions as automatically applicable. Raw historical traces reduce execution steps because they preserve intermediate search/edit/test process information that summaries omit.
+- **Evidence caveats:** author-run benchmark; distinguish full task set from smaller end-to-end subsets and keep the same executor/harness. Full traces consume considerably more input tokens, and construction/storage overhead must be included. Its results should not be extrapolated from coding repositories to all agent tasks.
+- **Assessment:** adds a valuable **Rescue vs Harm** metric and a strong **full-trajectory baseline**. Supports E5's skill-applicability warning. **M4 primary**, M1/M2 secondary.
+
+### E10 — SPEM: Structure-Aware Procedural Memory for Efficient Skill Use in LLM Agents
+
+- **Ran Zhou, Zehui Kong, Fanyu Lin, Jiaheng Liu, Zhen Zhang, Yuxiang Ren.** Submitted **2026-10-19**; arXiv v1 **preprint**. [Primary paper](https://arxiv.org/abs/2610.26995).
+- **Representation:** two stores—**Atomic Skill Memory** and **Skill-DAG Memory** holding ordered, dependency-aware compositions learned from successful executions. The agent reuses high-confidence templates or uses a **Skill-GNN** for state-aware selection of atomic skills.
+- **Learning boundary:** distinguish the **trained auxiliary skill-selection component** from the **external, updated DAG artifacts** and the underlying task-executor LLM; changing a DAG does not imply executor-weight updates. **M4 primary / M3 secondary.**
+- **Reported evidence:** on **ALFWorld and SkillsBench** the authors report **87.1% ALFWorld success** and **38.38 SkillsBench reward** in a reported configuration, alongside improved runtime/token efficiency against selected baselines.
+- **Limitations:** some reuse tests involve closely related or previously seen skills; do not call task-template replay cross-task transfer. Training of Skill-GNN, graph creation, indexing and invalidation after changed tools must enter total cost. Require frozen-selector / flat-library / full-history ablations.
+
+### E11 — SEPM: Self-Evolving Procedural Memory Grounded in Task Graphs for Multi-Agent Collaboration
+
+- **Yi Liu, Junwei Zhao, Li Sun, Jiansong Zhang, Sen Su.** Submitted **2026-10-10**; arXiv **preprint**. [Primary paper](https://arxiv.org/abs/2610.14515); [authors' code](https://github.com/cookieApril/SEPM).
+- **Mechanism:** shared **task-dependency graph** plus an evidence blackboard; verified action/dependency paths are distilled into team-reusable procedures, while recurring failures add warnings and constraints. Procedures can be refined, specialized or retired without requiring executor-weight training.
+- **Reported evidence:** under **AutoGen and DyLAN**, tested on **ALFWorld, WebArena and OfficeBench**; authors report highest scores against their memory baselines in all six configurations. Under AutoGen, respective gains over no added memory are **+29.85, +25.86 and +13.00 percentage points**.
+- **Limitations:** gains mix **coordination/realignment during the current run** with **persisted knowledge reused in later runs**. Need independent cross-task memory-transfer ablations, matched orchestration/search costs, cross-agent provenance and safe rollback. **M4 primary** for reusable procedures; agent-systems-engineering secondary.
+
+### E12 — AFTER: Managing Procedural Memory in LLM Agents: Control, Adaptation, and Evaluation
+
+- **Julia Belikova, Rauf Parchiev, Evgeny Egorov et al.** Submitted **2026-06-22**; arXiv **preprint / benchmark**. [Primary paper](https://arxiv.org/abs/2606.23127).
+- **Benchmark:** **382 professional tasks, six roles, 22 procedural skills**, with explicit tests for local refinement, held-out task, cross-role and cross-model transfer.
+- **Reported evidence:** one refinement round raises aggregate results by **3.7–6.7 points** depending on the model; diverse multi-model source trajectories yield **73.1% cross-model test accuracy** under the authors' protocol. Some role-specific skills lose effectiveness under transfer.
+- **Limitations:** known task/skill annotations simplify selecting the applicable skill; end-to-end deployment must also discover, validate and retrieve procedures. Check overlap across skill/task families, evaluator design and creation-time cost.
+- **Assessment:** an important **previously missing transfer-specific evaluation anchor**, not a paper newly published this week. Benchmarks should distinguish *new task, new role, new model* from replay of the original execution.
+
+### Boundary: ReHarness (M2 primary)
+
+[ReHarness](https://arxiv.org/abs/2610.12668) revises earlier textual reflections after new trajectories. It touches M4 via feedback but its principal contribution is correcting past memory, already owned by [M2](../m2-memory-lifecycle/research.md).
 
 ## Contradictions and technical distinctions
 
@@ -86,7 +129,10 @@ _Last reviewed: 2026-10-20. First extended evidence pass. This scheduler owns on
 | Distilled skills transfer between models/tasks | Trace2Skill; APEx in tested regimes | Task-boundary failures and wrong-tool amplification in BASM study; test *dissimilar tool requirements* |
 | Consolidating experience is always a good write action | Some distillation/skill results in Trace2Skill and APEx | Zhang et al. show destructive consolidation can severely damage performance |
 | External procedures improve without weight updates | Reflexion, Trace2Skill, MemRL | APEx includes trained components; do not describe all procedural-memory research as non-parametric |
-| More skill memories are always better | Not supported | BASM's imitation-trap experiment finds wrong-tool confidence rises in some retrieval-heavy settings |
+| More skill memories are always better | Not supported | BASM [E5], Anti-Persistence [E8] and MemDev [E9] find regressions from unchecked reuse or persistent derived rules |
+| Persisting every distilled rule beats reconstructing from episodes | Not established | Anti-Persistence [E8] favors disposable guidance in its tested cases; generality and total cost remain open |
+| Same-task skill replay proves task transfer | Not established | SPEM's composition must be separately tested on held-out tasks; AFTER [E12] provides role/model transfer splits |
+| Reduced agent steps imply reduced total cost | MemDev [E9] finds raw trajectories shorten runs | Full trajectories increase prompt tokens; include construction, indexing, retrieval and training costs |
 
 ## Minimum experiment protocol for an M4 paper
 
@@ -97,6 +143,9 @@ _Last reviewed: 2026-10-20. First extended evidence pass. This scheduler owns on
 5. Record **artifact provenance, preconditions, expiration, side effects, human validation, permission scope, and rollback** for executable procedures.
 6. Separate **same-task retries, in-family generalization, cross-domain transfer and cross-model transfer**; these are increasingly strong tests and should not be conflated.
 7. For learned/distilled artifacts, identify **exact trained vs frozen model components**; M4 memory improvements and H2/H3/H4 harness improvements cannot be casually treated as equivalent.
+8. Report **Rescue and Harm separately** with temporally ordered histories, an unchanged executor and frozen memory at evaluation (MemDev [E9]).
+9. Compare **raw trajectories, persistent skills, boundary-checked skills and disposable query-time guidance** at equal *total* write + read + execution budgets (E5, E8, E9).
+10. For compositional skill selectors such as SPEM, ablate **graph/skill storage separately from the trained GNN controller**; report held-out template transfer.
 
 ## Next priorities
 
@@ -104,5 +153,7 @@ _Last reviewed: 2026-10-20. First extended evidence pass. This scheduler owns on
 - Test whether preserving provenance and failure conditions reduces negative transfer while containing latency and token growth.
 - Measure procedural **staleness** after tools/APIs change: is a retrieved skill valid, should it be retired, or can it be repaired safely?
 - Monitor independent replications and preprint revisions; distinguish meaningful new evidence from reuse of branded “self-evolution” terminology.
+- **New priority:** compare raw episodic traces, permanent skill libraries, boundary-aware skills and *on-demand temporary* guidance on identical held-out tasks, recording Rescue/Harm, cross-role transfer, latency, tokens and artifact-construction costs.
+- **New priority:** evaluate dependency-aware Skill-DAGs on task/tool drift; avoid treating replay of the task that created the DAG as evidence of transfer.
 
-_All numeric gains above are author-reported and tied to specific benchmark settings. No benchmark or code was independently rerun during this initial review. This document is living synthesis, not a chronological scheduler log._
+_All numeric gains are author-reported and tied to specific experimental protocols; most new October works are unreviewed arXiv preprints. No benchmark or code was independently rerun. This is a living synthesis of E1–E12, not a scheduler event log._
