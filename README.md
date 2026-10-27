@@ -9,6 +9,7 @@ The repository stores curated primary-source links, technical comparisons, evolv
 | Area | Purpose |
 | --- | --- |
 | [Agent Systems Engineering](./agent-systems-engineering/) | Track end-to-end agent engineering, harness design, multi-agent/graph systems, and production AgentOps. |
+| [Continual & Test-Time Learning](./continual-learning/) | Track continual/lifelong learning, test-time neural adaptation, multi-timescale optimization, and parametric memory consolidation (C1–C4). |
 | [Agent Memory](./agent-memory/) | Track memory storage/retrieval, lifecycle and forgetting, learned memory policies, and experience-to-skill reuse in LLM agents (M1–M4). |
 | [Complexity-Guided Architecture Lab](https://github.com/Baldros/complexity-guided-architecture-lab) | **Moved to a dedicated repository.** Research on task/data complexity and neural-network width/depth now lives in the independent lab, with a separate historical discussion catalog. |
 | [RNN and SSM Advances](./rnn-ssm/) | Track modern recurrent models, state-space models, linear attention, and hybrid sequence architectures. |
