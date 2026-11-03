@@ -2,6 +2,41 @@
 
 _Initialized: 2026-10-27. Baseline literature map based on published research lines; this is **not** a completed independent benchmark audit. The scheduled watcher owns only this file._
 
+## Review — 2026-11-03: evidence on retention, consolidation and reset semantics
+
+_This review adds studies released before November 2026; it is not a claim that they were published this week. Findings are reported from the authors' studies, not independently reproduced here._
+
+### Evidence and interpretation
+
+| Axis | Primary study | Reported contribution | Key qualification |
+| --- | --- | --- | --- |
+| C1 | [Continual Learning Mechanisms Compose for Long-Horizon Memorization (ComposeCL)](https://arxiv.org/abs/2609.06986) (2026 preprint) | Combines replay, regularization and LoRA-based update strategies for sequential QA. Authors report **34.9%** final retention against **1.2%** for naive sequential fine-tuning across a 100-task evaluation. | Improvement is large relative to the baseline but retention remains low in absolute terms. A fixed QA protocol does not establish lifelong generalization, and additional replay/training cost must be counted. |
+| C2 | [Universal Test-Time Training (uTTT)](https://arxiv.org/abs/2610.05484) (2026 preprint) | Shares gradient-updated fast-weight neural memory across layers, improving within-sequence memory use over layer-private comparisons in the authors' experiments. | **Fast weights reset between sequences**: this is not demonstrated durable cross-session learning. Match memory and online-update compute when comparing. |
+| C1/C4 | [Can a Language Model Learn Facts Continually in Its Weights?](https://arxiv.org/abs/2607.11020) (2026 preprint) | Sequential fact-write experiments distinguish failure to *retrieve* earlier facts from complete removal of their parametric traces. More varied training formulations improve later recall. | Evidence is from controlled invented-fact settings and specific models; surviving log-probability signatures are not universal proof of a single mechanism. |
+| C1/C4 | [Continual Fine-Tuning of Large Language Models via Program Memory (ProCL)](https://arxiv.org/abs/2605.13162) (2026; [Findings of EMNLP 2026](https://aclanthology.org/2026.findings-emnlp.1048/)) | Routes among transient training-time LoRA program slots, consolidates executed adapters into a persistent LoRA through a moving-average update, and removes routing at inference. | Short sequential task horizons; a within-task convergence argument is not a guarantee against arbitrary cross-task forgetting. Training-time routing still costs compute. |
+| C1 theory | [Catastrophic Forgetting is Low-Rank: A Function-Space Theory for Continual Adaptation](https://arxiv.org/abs/2606.18024) (2026 workshop/preprint) | Analyzes old-task function drift through cross-task NTK structure; low-rank vulnerability in restricted regimes. | Exactness is confined to simplified/frozen-feature or linear-head assumptions; full nonlinear LLM updates require separate validation. |
+| C1 | [Can Scale Save Us From Plasticity Loss in Large Language Models?](https://arxiv.org/abs/2606.24752) (2026 preprint) | Investigates whether growing transformer size prevents the decline of future learning ability after prior training. | Experiments are far below frontier-scale LLMs; plasticity loss is not the same as forgetting previously learned tasks. |
+
+### What changed relative to the baseline
+
+1. **C1 is no longer merely historical context.** ComposeCL supplies a 100-task empirical retention comparison, and the fact-write study tests whether knowledge can remain encoded but behaviorally inaccessible. Both constrain strong claims about persistent neural memory.
+2. **C2 must record resets explicitly.** uTTT illustrates that an adaptive neural state can be effective for long-context inference yet deliberately discarded after each sequence. Fast-weight adaptation alone does not establish continual learning.
+3. **C4 has a distinct consolidation comparator.** ProCL persists an adapter update while removing training-time routing from inference. This differs materially from retaining temporary test-time fast weights or editing external agent memory.
+4. **Three failure modes must be evaluated separately:** (i) interference/forgetting of old tasks, (ii) accessibility of still-encoded facts, and (iii) loss of plasticity for future tasks.
+5. **No universal solution is established.** Titans/MIRAS/ATLAS, Nested Learning/Hope, Sleep and SEAL remain important anchors, but a single system that combines reliable online adaptation, durable multi-session consolidation, low forgetting, low total cost and safe updates has not been demonstrated by the evidence summarized here.
+
+### Follow-up evaluation priorities
+
+- For **Titans/MIRAS/ATLAS/uTTT**, enumerate which exact states or parameters update, whether they survive resets, and whether later unrelated tasks retain earlier information.
+- For **Sleep/SEAL/ProCL/ComposeCL**, compare total training, replay, consolidation and inference cost under matched backbones and sequential-task protocols.
+- Measure both **retention of old tasks** and **plasticity for new tasks** over many updates, including paraphrased and conflicting facts.
+- Treat peer-reviewed publication, author-reported empirical findings, limited theoretical results and independent replications as different evidence levels.
+- Cross-link to [Agent Memory M3](../agent-memory/m3-learned-memory/research.md) only for demonstrated agent-memory mechanisms; ordinary fast-weight sequence models remain in this stream and [RNN/SSM](../rnn-ssm/).
+
+### History
+
+- **2026-11-03:** First substantive literature reconciliation: ComposeCL, uTTT, fact-write accessibility, ProCL, function-space theory and plasticity-loss evidence. These papers predate the review and are baseline enrichment, not all new releases.
+
 ## Current synthesis
 
 1. **Continual learning is an established research problem, not a 2025 invention.** Sequential learning causes interference and forgetting. Replay, regularization (e.g., EWC), architectural isolation/expansion and distillation address different pieces of the stability–plasticity tradeoff; none should be presented as universally solving lifelong learning.
