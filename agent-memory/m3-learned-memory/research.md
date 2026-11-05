@@ -1,6 +1,6 @@
 # M3 — Learned Memory & Model–Memory Co-Adaptation — Living Research State
 
-_Reviewed: 2026-10-20. First extended evidence pass. This scheduler owns **only this file**; parent [research.md](../research.md), [taxonomy](../taxonomy.md), [study guide](../study.md) and sibling files remain read-only._
+_Reviewed: 2026-11-05. Updated learned memory policies, co-adaptation, neural-state boundaries and Memorilla v2, preserving prior N1–N9 evidence. This scheduler owns **only this file**; parent [research.md](../research.md), [taxonomy](../taxonomy.md), [study guide](../study.md) and sibling files remain read-only._
 
 ## Current synthesis
 
@@ -8,7 +8,10 @@ _Reviewed: 2026-10-20. First extended evidence pass. This scheduler owns **only 
 2. **There are at least three different learned decisions:** *(a)* compress/represent stored evidence into tokens (Memorilla), *(b)* navigate a source-preserving external store and choose query-time evidence (JAM, NapMem), *(c)* decide how to create/update/delete memory over a stream (Memory-R1, UMA, MemoPilot, Memory-R2). Judge their contribution against the matching non-learning baseline. [N1, N3–N7]
 3. **Training a memory agent is a long-horizon RL problem with nonstationary state caused by its own actions.** Memory-R2 observes that different rollout branches no longer share an equivalent memory history; its local rerollouts offer a principled response to unfair group-relative credit assignment. It is still an author-reported preprint result. [N8]
 4. **Model-controlled files are not necessarily trained policies.** CLM includes zero-shot context-file use, instruction search and parametric RL variants. Only the learned variants are strong M3 exemplars; plain file management belongs mainly to M2/H1. [N2]
-5. **The strongest remaining uncertainty is cost-matched generalization.** Token reductions can hide document encoding, repeated tool calls, attention passes, index storage, train-time rollouts and extra model invocations. Several benchmark comparisons use different backbone sizes/checkpoints; those are evidence of feasibility, not clean causal estimates.
+5. **Learned memory assembly is not memory writing.** MemComposer [N10] trains a separate RL composer to choose and order fixed text episodes for a frozen executor. Its gains against several strong learned-memory baselines are not statistically distinguishable in all tested settings.
+6. **Parameter-level co-adaptation is demonstrable but uncommon.** ElasticMem [N11] jointly optimizes executor attention LoRA adapters, a latent projector, and a memory-budget policy while keeping its source encoder and external bank frozen. This contrasts with Memorilla's frozen answering backbone and MemComposer's frozen executor.
+7. **Neural state is not automatically persistent agent memory.** LSTMem [N12] updates a compact recurrent state over a history but resets per independent history and still retains KV history during evaluation. Titans [boundary] studies test-time fast weights within sequences, not an auditable cross-restart agent memory.
+8. **The strongest remaining uncertainty is cost-matched generalization.** Token reductions can hide encoder passes, repeated tool calls, attention passes, index/cache storage, LoRA or RL training, simulated executor rollouts and serving optimizations. Most benchmark comparisons are author-reported and do not establish safe lifelong updates, deletion, restart persistence or matched total FLOPs.
 
 ## Mechanism / trainability map
 
@@ -22,6 +25,10 @@ _Reviewed: 2026-10-20. First extended evidence pass. This scheduler owns **only 
 | **MemoPilot [N6]** | Explicit cross-round text memory | Memory-update copilot guides player | Copilot trained with multi-turn GRPO; **player frozen** |
 | **NapMem [N7]** | Linked memory pyramid from raw conversations to profiles | Learned tool-navigation policy | Memory-using agent via memory-tool RL |
 | **Memory-R2 [N8]** | Accumulated and mutable memory over session stream | Coupled extractor/manager roles | Shared-parameter RL with local/global credit signals |
+| **MemComposer [N10]** | Fixed external bank of textual experiences | Composer selects/counts/orders episodes | Separate composer LoRA trained with GRPO-like RL; **executor and bank frozen** |
+| **ElasticMem [N11]** | Fixed offline embedding keys and cached latent document states | Learned retrieval trigger, budget and projection | **Executor attention LoRA + budget policy + projector jointly trained**; base and encoder frozen |
+| **LSTMem [N12]** | Per-layer recurrent cell/hidden matrices within one history | Gated adapter reads/writes neural state | Adapter weights supervised-trained; **backbone frozen**; recurrent state changes at inference |
+| **Titans [boundary]** | Sequence-time neural fast weights and input-independent persistent tokens | Surprise-gradient state updater | Fast weights update during sequence; persistent tokens are fixed at inference |
 
 **No row should be interpreted as H3 or H4 merely because memory changes.** For harness H4, both the *executor parameters and executable harness* must be adapted in a coupled loop, as specified in the [harness taxonomy](../../agent-systems-engineering/taxonomy.md).
 
@@ -29,10 +36,10 @@ _Reviewed: 2026-10-20. First extended evidence pass. This scheduler owns **only 
 
 ### N1 — Memorilla: Latent Semantic Memory for LLMs
 
-- **Adibvafa Fallahpour, Parsa Idehpour, Vignesh Kothapalli, Nikita Mounier, Shirley Wu, Shayan Pardis, Jure Leskovec.** **2026-10-15**, arXiv v1 preprint. [Primary paper](https://arxiv.org/abs/2610.21375). [Project](https://memory.stanford.edu/).
-- **Architecture:** document encoder creates reusable embeddings; learned query-conditioned module projects information into the LLM embedding space as **16 memory tokens**. The executor LLM is frozen. A memory token is a continuous representation, **not** a textual chunk or an updated LLM weight.
+- **Adibvafa Fallahpour, Parsa Idehpour, Vignesh Kothapalli, Nikita Mounier, Shirley Wu, Shayan Pardis, Jure Leskovec.** Submitted **2026-10-15**, revised **2026-10-27 (v2)**; arXiv preprint. [Primary paper](https://arxiv.org/abs/2610.21375). [v2 methods](https://arxiv.org/html/2610.21375v2). [Project](https://memory.stanford.edu/).
+- **Architecture and trained components:** frozen Qwen3-Embedding-4B encodes documents/query into reusable embeddings; a learned query-conditioned slot/cross-attention/projector module (reported **194,123,776 trainable parameters**) converts them to **16 continuous memory tokens** for a **frozen Qwen3-8B executor**. The module is trained using downstream answer-token objectives. Memory tokens are not textual chunks or changes to backbone weights. The TextWorld GRPO variant uses **eight** tokens but also retains full trajectory text under an evaluation context limit, so it does not prove independent durable lifelong memory.
 - **Reported evidence:** best among tested baselines on **five of eight** benchmarks. FactKG accuracy **84.33% vs 80.43%** for full context with **108× fewer source-representation tokens**. In TextWorld, success **24.2% vs 18.6%** for the paper's full-history comparator.
-- **Limits:** benchmarks where it *does not* win; reader training and ingestion cost; memory updates and temporal correction; fairness of comparisons between short latent inputs and long text; robustness when document/interaction distribution shifts. The 108× token figure is *not* a measured 108× total computational saving.
+- **v2 cost claim and confounders:** at a tested 512-document setup, authors report **0.74 s vs 19.93 s** against full context on an H100. The long-context serving baseline uses YaRN and an unpaged HF inference path; this is **not** a general 27× deployment speedup. The **108× figure** concerns *source-context token reduction*, not full system FLOPs. Training and document encoding must be included in total costs; some no-document LoRA comparisons use a different decoder. Test dynamic updates, correction, deletion, restart persistence and comparisons to equally supervised learned retrieval.
 - **Classification:** primary M3, secondary [M1](../m1-memory-systems/research.md).
 
 ### N2 — Context Language Models (CLM)
@@ -98,6 +105,38 @@ _Reviewed: 2026-10-20. First extended evidence pass. This scheduler owns **only 
 - **Reported evidence:** author-reported gains over static and RL-based agents on long-context memory tests.
 - **Limits:** needs ablation showing added value of process reward vs larger search/rollout budgets, reward-model leakage, and honest accounting of grader training cost. Novel name alone is not proof of a fundamentally new RL family.
 
+### N10 — MemComposer: Learning to Assemble Memories for LLM Agents via Reinforcement Learning
+
+- **Yixuan Xie, Xueqiang Xu, Xinyi Fan et al.** Submitted **2026-10-15**. **Status:** arXiv preprint. [Primary](https://arxiv.org/abs/2610.21091), [full methods](https://arxiv.org/html/2610.21091).
+- **Substrate and read/write boundary:** a fixed bank of curated textual episodes from earlier agents. A separate **composer** chooses the **number and order** of episodes assembled into the prompt of a **frozen executor**. The composer does not create, delete, or retrain the experience bank in this setup.
+- **What is trained:** Qwen3-4B-Instruct or Ministral-3-8B-Instruct composer with **rank-64 LoRA**, optimized by ExPO/GRPO-style group comparisons over repeated success of frozen executor rollouts, penalizing unnecessarily large/invalid compositions. Frozen: executor and bank.
+- **Author-reported evidence:** on portions of tau-squared-bench, Qwen executor **pass^1 50.8 vs 45.0** strongest tested comparator; Ministral **63.5 vs 58.9**. Mean memory-context tokens decline **16.9%** and **4.9%**, respectively. The paper's **pass^4 requires success in all four independent runs** (not pass@4). Qwen gap versus MemRL **+6.3 percentage points, 95% paired-bootstrap CI [-0.4,12.7]**; Ministral **+4.6, CI [-1.0,10.4]**. Thus superiority over that strong baseline is **uncertain** in these tests.
+- **Costs and limits:** author reports Qwen **16.3–81.7 H100 GPU-hours per domain**, excluding relevant external executor/user-simulator API charges; repeated executor simulations dominate training runtime. Some domains have only 20–40 test tasks, without robust multiplicity correction; transfer to unfamiliar banks, shifted settings or changed executors is limited. Reduced prompt tokens are not a substitute for full training and serving cost.
+- **Assessment:** strong example of **learned read/assembly with a frozen executor**, not demonstrated neural/external memory co-training. **M3 primary, M4 secondary** for the experiential substrate.
+
+### N11 — ElasticMem: Latent Memory as a Learnable Resource for LLM Agents
+
+- **Tao Feng, Chongrui Ye, Tianyang Luo et al.** Submitted **2026-05-29**. **Status:** arXiv preprint; older paper newly added because it fills a material co-adaptation gap. [Primary](https://arxiv.org/abs/2605.30690), [full methods](https://arxiv.org/html/2605.30690).
+- **Substrate:** *offline fixed* bank of chunks represented by keys (encoder last hidden state) and latent-content caches (often last 20 hidden states); a **frozen encoder** constructs the bank. Executor emits a memory-control token and hidden query, retrieves chunks, chooses **per-chunk latent budget**, and projects retrieved states as soft tokens.
+- **What is trained:** **reasoner attention q/k/v/o LoRA adapters (rank 16)**, latent projector, and budget-policy module **jointly with GRPO**. **Frozen:** base reasoner weights outside LoRA, source encoder, and offline bank. This is authentic **executor-adapter plus memory interface co-adaptation**, not automatically harness H3/H4.
+- **Reported evidence:** Qwen2.5-3B/7B experiments claim **26.2%/24.6% relative weighted QA accuracy** and **66.3%/27.2% relative ALFWorld success** versus best studied baselines. **Relative improvements are not percentage-point increases.**
+- **Limitations:** shared backbone scale/source evidence does not imply equal training objectives, FLOPs, inference overhead or labels. ALFWorld optimization uses expert-action agreement as training feedback while task success is evaluated; tasks may be retrained separately. Dynamic inserts, contradictory facts, safe deletion, and long-term restart consistency remain untested.
+- **Next ablations:** same LoRA executor and memory bank with fixed retrieval/budget, projector-only, budget-only and jointly trained modules at matched training+inference compute. **M3 primary; M1 secondary for latent substrate.**
+
+### N12 — LSTMem: Hierarchical Long Short-Term Online Memory for Large Language Models
+
+- **Xianglong Shi, Ruijie Yang, Sirui Zhao et al.** Submitted **2026-09-27**, revised **2026-10-19 (v2)**. **Status:** arXiv preprint. [Primary](https://arxiv.org/abs/2609.33268), [code](https://github.com/Longchentong/LSTMem).
+- **Substrate:** per-layer **gated recurrent cell and hidden-state matrices**, with cross-layer state transfer and state correction at block boundaries. Main Qwen3-4B configuration reports **36 KiB BF16 C/D state** *per history*, independent of history length. Not an external document database.
+- **What is trained:** auxiliary memory adapter via **supervised answer-token cross entropy**; backbone weights **frozen**. During inference the recurrent **state changes**, but the adapter/LLM weights do not. Do not mistake gradients over a temporary state for training of executor parameters.
+- **Reported evidence:** Qwen3-4B LoCoMo F1 **53.60 vs 49.12** for one online-memory competitor; aggregate history inference **5.9–6.5% slower** than delta-Mem across tested 8K–128K settings. Some competitors' results are imported from earlier studies.
+- **Critical qualification:** state **resets for each independent conversation/history**, and evaluation retains the **historical KV cache**; several questions about one history do not create a persistent multi-session state. Thus a 36 KiB recurrent state is not evidence of a complete 36 KiB durable lifelong agent memory. No direct safe removal or restart isolation is established.
+- **Classification:** boundary M3 for learned neural-memory adapter; do not treat it as equivalent to persistent inter-task M1 storage.
+
+### Additional boundaries — Titans and MemoProAgent
+
+- **Titans: Learning to Memorize at Test Time** (Ali Behrouz, Peilin Zhong, Vahab Mirrokni; first posted **2024-12-31**), [primary](https://arxiv.org/abs/2501.00663): sequence-time fast neural weights updated through surprise/gradient dynamics, plus separately learned input-independent persistent tokens fixed at inference. The term *persistent* is not evidence of autonomous-agent memory surviving a process restart, with source provenance, retrieval ACLs and controlled deletion.
+- **MemoProAgent: Toward Memory-Driven Proactive Assistance** (Shenglai Zeng et al.; revised **2026-10-21**), [primary](https://arxiv.org/abs/2610.22671): zero-shot graph memory and firing control are separable from GRPO **post-training of the proactive generator**. Reported strict proactive scores **37.5% zero-shot vs 42.4% with generator-policy RL** on a tested Qwen3.8-27B setting. The trained component is the **generator decision policy**, not established as a learned write/read/forget controller; track as **boundary evidence**, not a primary M3 memory-policy paper.
+
 ## Experimental contradictions / methodological cautions
 
 | Hypothesis | Supporting studies | Qualification / counter-test |
@@ -105,14 +144,19 @@ _Reviewed: 2026-10-20. First extended evidence pass. This scheduler owns **only 
 | Learned memory improves frozen executors | Memorilla, JAM, MemoPilot | Backbone, stored evidence and token/compute budgets differ; verify same-executor controlled baselines |
 | Learned write/update policies beat heuristics | Memory-R1, UMA, MemoPilot | [M2](../m2-memory-lifecycle/research.md) reports forced consolidation can harm performance; compare episodic-only and revision-gated alternatives |
 | RL trajectory reward is sufficient for memory | Memory-R1, UMA | Memory-R2 argues rollout state mismatch makes naive group-relative credit biased; audit rollout branches and state resets |
-| Shorter context reduces *overall* system cost | Memorilla, CLM, JAM | Must include indexing, encoding, tool calls, policy training and serving optimizations separately |
+| Shorter context reduces *overall* system cost | Memorilla, CLM, JAM, ElasticMem | Include encoding, latent-cache storage, LoRA/GRPO training, repeated rollouts, tool/API cost and serving optimizations |
+| Learned selection improves over strong baselines | MemComposer [N10] | Confidence intervals against some competitors cross zero; training involves costly simulated executor rollouts |
+| Executor weights always stay frozen | Memorilla, MemComposer | **False for ElasticMem [N11]: reasoner attention LoRA is trained jointly with memory policy/projector** |
+| Neural recurrent state proves lifelong persistence | Titans and LSTMem show dynamic in-sequence memory | LSTMem resets per independent history and retains historical KV; neither verifies cross-restart agent memory |
 
 ## Monitoring priorities
 
 - Track **precise trained parameters**, not labels: executor vs memory controller vs trainable encoder/latent adapter; where weight updates happen and what remains external mutable data.
 - For RL, record **MDP/observation/action/state, reward shaping, credit assignment, eligibility of memory states for comparison, rollout costs, held-out policy transfer**.
-- For neural memories, test retention over restarts, additions/corrections, gradient interference, OOD retrieval and whether embeddings encode outdated/private facts.
+- For neural memories, test retention over restarts, additions/corrections, gradient interference, OOD retrieval and whether embeddings encode outdated/private facts. **Explicitly record state resets and whether source historical KV remains resident.**
+- **Causal comparison:** same answering backbone, source corpus, candidate list and objective across strong raw-history RAG/full history, zero-shot or rule-based selection, MemComposer learned assembly, frozen-backbone Memorilla, and ElasticMem-style trainable executor adapters. Equate supervision, train FLOPs and full read/write serving budgets.
+- **Co-adaptation control:** under identical LoRA resources test projector only, memory-budget policy only, fixed retrieval, and joint LoRA/projector/policy learning; require OOD task transfer and dynamic writes/corrections.
 - Cross-link M1 storage, M2 retention/deletion and M4 experience-to-skill; do not duplicate their detailed findings.
 - Benchmark matched no-memory, simple RAG, full-history, heuristic write/read, non-training memory and trainable memory systems. Distinguish measured answer improvements from robust lifelong adaptation.
 
-**Evidence grade:** MemoPilot states ICML 2026 acceptance; other cited studies are arXiv preprints in the currently verified metadata. All numbers are author-reported; no independent rerun was conducted in this review. Maintain this file as a corrected evidence map, never append unfiltered weekly lists.
+**Evidence grade / review continuity:** baseline N1–N9 from 2026-10-20 retained; revised Memorilla v2 metadata/limitations and added N10–N12 with Titans/MemoProAgent boundary checks on 2026-11-05. MemoPilot reports ICML 2026 acceptance; N10–N12 are author-reported preprints. No independent reproduction or benchmark was run. Maintain this document as living evidence, not an append-only event log.
