@@ -1,6 +1,6 @@
 # M4 — Experiential & Procedural Memory — Living Research State
 
-_Last reviewed: 2026-10-23. New evidence reconciled with the 2026-10-20 baseline; October papers are preprints and their results are author-reported. This scheduler owns only this file; [parent synthesis](../research.md), [taxonomy](../taxonomy.md), [study guide](../study.md), and sibling files are read-only._
+_Last reviewed: 2026-11-06. November and late-October evidence reconciled with the 2026-10-23 E1–E12 baseline; newly found older studies are labeled separately. Preprint results are author-reported and not independently reproduced. This scheduler owns only this file; [parent synthesis](../research.md), [taxonomy](../taxonomy.md), [study guide](../study.md), and sibling files are read-only._
 
 ## Current synthesis
 
@@ -12,12 +12,18 @@ _Last reviewed: 2026-10-23. New evidence reconciled with the 2026-10-20 baseline
 6. **New counterevidence: persistent abstractions can reproduce errors.** Anti-Persistence retains observed trajectories and outcomes while generating and then discarding task-specific guidance. On the authors' held-out tests this is stronger than always persisting distilled rules. This strengthens—but does not universally prove—the warning from E6. [E8]
 7. **Memory can cause regressions even with relevant prior experience.** MemDev-Bench explicitly measures rescue and harm in evolving repositories; failures arise when previously successful procedures are reused without reassessing fit. [E9]
 8. **Dependency-aware skills and transfer-specific evaluation are important emerging controls.** SPEM uses Skill-DAGs, SEPM uses shared task-dependency graphs and AFTER separates within-task improvement from cross-role and cross-model generalization. Strong observed results remain task- and budget-dependent. [E10–E12]
+9. **Correct diagnosis is often more useful than repeated self-reflection.** WASP-Mem [E13] distills success/failure traces into a procedural wiki. A round with external checkpoint feedback and human diagnosis outperforms four self-judged rounds in the authors' experiment. Its principal multi-round benchmark **reuses the same tasks**, limiting claims of cross-task transfer.
+10. **A locally validated skill is not automatically globally applicable.** Scope Before You Persist [E15] controls for proposal and gating decisions: family-scoped deployment improves task utility relative to global deployment. Scope, provenance and expiry should accompany the procedure itself.
+11. **Held-out improvement sometimes changes the harness rather than just memory.** EMMA [E14] freezes the backbone and learns scoped edits to routing, specialists and skills on one task split; disjoint evaluation is promising but this is **H2 primary / M4 secondary**, not executor-weight learning.
+12. **Evidence-linked skill promotion offers more governance than unverified summaries.** Peer-reviewed MSCE [E16] promotes source-grounded policies into callable skills with applicability and verification information. Reported cross-domain results include *target-domain further evolution*, not fully frozen zero-shot transfer.
 
 ## Research boundaries
 
 **Episodic memory** retains individual runs/observations. **Reflections** interpret runs and record lessons. **Procedural memory** stores strategies, policies, scripts, instructions or executable skills; it should carry applicability, risk and recovery conditions. **Skill learning** can mean either (a) writing external reusable artifacts with frozen model weights, or (b) optimizing a trained controller using those artifacts; classify the mechanism actually tested.
 
 **Primary M4** when the contribution is *abstracting or reusing experience for future behavior*. **Primary M2** when the contribution is revision, consistency and forgetting of existing records; **primary harness H2** when the contribution is automation of harness modification (cross-tag procedural learning here if significant).
+
+**Test-strength ladder:** same-task retries < temporally later tasks in one family < held-out families/roles < truly new domains/models with a frozen memory artifact. A frozen executor can still spend substantial calls on memory distillation, retrieval, grader feedback, tool search or human diagnosis. Prompt/skill edits and auxiliary learned controllers must be attributed separately from executor weight updates.
 
 ## Primary evidence
 
@@ -117,6 +123,41 @@ _Last reviewed: 2026-10-23. New evidence reconciled with the 2026-10-20 baseline
 - **Limitations:** known task/skill annotations simplify selecting the applicable skill; end-to-end deployment must also discover, validate and retrieve procedures. Check overlap across skill/task families, evaluator design and creation-time cost.
 - **Assessment:** an important **previously missing transfer-specific evaluation anchor**, not a paper newly published this week. Benchmarks should distinguish *new task, new role, new model* from replay of the original execution.
 
+### E13 — WASP-Mem: Let Agent Organize Procedural Memory. Human Spend Effort on Diagnosis — **new 2026-11-02**
+
+- **Peizhi Niu, Ge Shi, Vaibhav Gorde, Sarthak Ghosh, Christos Faloutsos, Min Cheng, Kevin Chen.** Submitted **2026-11-02**, arXiv **v1 preprint**. [Primary paper](https://arxiv.org/abs/2611.04003); [methods, tables and cost appendix](https://arxiv.org/html/2611.04003v1).
+- **Mechanism / frozen components:** a fixed executor processes task traces, checkpoint feedback and optional human failure diagnoses; a prompted consolidator writes/edits **persistent interlinked wiki pages**, retrievable for later attempts. It compares unconstrained Free Form pages with pretyped schemas, explicit deduplication, flat insights, hierarchical skills, raw-trace retrieval and no memory. Memory is frozen per evaluation round, rewritten between rounds; **no executor or memory-controller weight training**.
+- **Evidence:** **127 TheAgentCompany tasks, 542 checkpoints**, three backbones. Against the strongest tested consolidation baseline, Free Form gains **4.6–6.1 checkpoint-pass percentage points** with **57–61% smaller memory store**. One round with human-diagnosed checkpoint failures exceeds four rounds using only self-judgment by **7.0–10.9 points**. A separate **tau²-Bench Retail 74-train/40-held-out test** evaluates narrower in-domain task transfer rather than only repeats.
+- **Confounders/cost:** TheAgentCompany **re-executes the same 127 tasks in R0–R4**; it establishes competence on recurring workloads, **not new-family transfer**. Authors report a **single run per configuration** and caution about variance. Per 127-task batch, execution **plus retrieval** costs **$149.3 vs $106.6 no-memory** on Claude Opus 4.6, **$147.8 vs $108.5** on GPT-5.4, and **$65.9 vs $56.3** on GLM-5; consolidation, evaluation, embedding, host and human diagnosis are additional. Smaller stores ≠ cheaper end-to-end execution.
+- **Interpretation:** a credible same-harness controlled study in **feedback quality and consolidation representation**, but not proof of cost-free or zero-shot OOD procedural transfer. Strong M4 primary; M2 secondary. Prescribed schemas *in these variants* underperform Free Form, without invalidating all typed/validated procedure representations. No demonstrated automatic expiry, cross-agent provenance or rollback.
+
+### E14 — EMMA: Structured Episodic Memory for Multi-Agent Workflow Synthesis — **new 2026-10-25; harness-H2 boundary**
+
+- **Ruijia Niu, Kaiwen Liu, Rose Yu, Kristina Klinkner.** Submitted **2026-10-25**, arXiv **v1 preprint**. [Primary paper](https://arxiv.org/abs/2610.35966); [methods/splits](https://arxiv.org/html/2610.35966v1).
+- **Mechanism:** failures and evaluator feedback produce guarded, **single-scope external edits** to controller routing, specialist-agent descriptions/configurations, or per-step procedural skill text. Training and execution use a **frozen backbone**; accepted harness/skill artifacts persist and are frozen for held-out testing. Neither executor nor reflector weights update. This is **harness adaptation**, so **H2 primary / M4 secondary**.
+- **Held-out evidence:** **KramaBench 28 train / 76 test**, **BBEH-mini 92 train / 368 test**, **AppWorld 90 train / 168 normal + 417 challenge test**. Against ACE, GEPA, EvoMAS and ADAS, authors report the highest overall results on three benchmarks across five backbones, with **17–38% fewer training executions** than their most efficient comparator. Controlled ablations indicate specialist/skill pools contribute; some held-out tasks reuse a previously induced specialist/procedure.
+- **Limits:** disjoint *task IDs* are stronger than same-task retries, but KramaBench and BBEH hold task families/categories largely constant; do not claim unconstrained OOD transfer. Controller coordination, specialist creation, tool-search budget and skill text change together; exact memory-only causal contribution is underidentified. Compare matched executor/context/rollout dollar budgets, and test versioned rollback and routing/tool drift.
+
+### E15 — Scope Before You Persist: Preventing Cross-Family Interference in Agent Memory — **previously omitted, 2026-09-24**
+
+- **Yezhou Cheng, Runjia Du, Zeming Liu, Qibai Chen, Hang Lyu, Yankai Zeng, Yilan Wei, Bojun Lin.** Submitted **2026-09-24**, arXiv **v1 preprint**. [Primary paper](https://arxiv.org/abs/2609.29144); [experimental protocol](https://arxiv.org/html/2609.29144v1). This is *new to this ledger*, **not** a November publication.
+- **Mechanism / boundary:** external prompt/skill **scaffold edits** are screened with execution-grounded Orthogonal Regression Control (ORC). Holding the proposed edit and acceptance gate fixed, compare **global deployment** versus retrieval restricted to the **task family where the edit was certified**. Frozen executor; no reported gradient-based weight change. **H2 primary / M4 secondary**, since persistent executable scaffolds are modified.
+- **Strong scope intervention:** with matched proposals/gates, family scope increases hidden trajectory utility **0.713 → 0.816** and observed harmful deployments fall from **6/8 to 0/8**. In **27 paired randomized-order 12-round streams**, scope minus global trajectory utility is **+0.063 [0.037, 0.094]**, with **63 versus 12 accepted updates** and **0/63 versus 6/12 harmful accepted updates**. In this design global ORC can do worse than the static baseline.
+- **Implications:** **local evidence does not certify global applicability**. Each procedure needs evidence lineage, target scope, preconditions, versioned constraints and rollback. A skill-retrieval threshold alone cannot replace applicability validation. Reinforces BASM [E5] and MemDev negative-transfer [E9].
+- **Limits:** nine **templated code-contract families**, easy family identity under its evaluated router, and a single executor environment. The zero observed harms do **not** establish zero risk under unseen families, API drift, uncertain routing or malicious memory injection. Scope/certification isolate one cause of harm, not all causes of transfer failure.
+
+### E16 — From Memory to Skills: Evidence-Grounded Governance for Long-Horizon LLM Agents (MSCE) — **peer-reviewed, October 2026**
+
+- **Bo Tang, Yang Zhang, Guomian Zhuang et al.** Previously submitted **2026-07**; published in **Findings of EMNLP 2026 (October)**. [Peer-reviewed primary paper](https://aclanthology.org/2026.findings-emnlp.1637/); [technical details](https://arxiv.org/abs/2607.16621).
+- **Mechanism:** **L1 grounded step traces → L2 reusable policies → L3 environment/dependency cognition**. Reflection-weighted value backfilling spreads sparse terminal rewards across steps. Policies with positive **estimated** benefit become callable skills with **source links, applicability constraints, decision instructions, verification rules and reliability estimates**. External memory/skill state changes; **executor weights remain frozen**, while prompted helpers score and consolidate evidence. This is M4 primary; M2 lifecycle and M1 retrieval secondary.
+- **Author-reported evidence:** EvoAgentBench domains (retrieval, math, software engineering, code and knowledge work) and LoCoMo. A common executor/harness supports within-paper comparisons; a separate helper LLM adds computation. Ablating crystallization worsens performance under studied tasks. The reported cross-domain improvements are **warm starts followed by further target-domain adaptation**, **not frozen zero-shot transferable skill performance**.
+- **Limits:** the estimated gain for policy promotion is a **heuristic observational value**, not a randomized on/off causal effect. Cost of helper calls, token indexing, checks and maintenance must be included. Robustness to stale APIs, evaluator leakage, permissions and rollback is not established. More grounded than an inert log, but not a settled general-purpose procedural-memory architecture.
+
+### Additional representation / retrieval boundary (do not duplicate as M4 headlines)
+
+- [Neural Procedural Memory](https://aclanthology.org/2026.findings-emnlp.856/) (Findings of EMNLP 2026) extracts **activation-steering vectors** from experiences. Inference-time activation changes are not executor-weight training; a vector's runtime use does not establish durable restart-safe memory or executable external skills.
+- [ExperienceIndex: Artifact-Grounded Memory](https://arxiv.org/abs/2610.10091) (2026-10-07) indexes prior reasoning/answer artifacts to guide later tasks. A valuable **M1-primary** addressing/retrieval cross-link; do not equate near-task retrieval improvements with generalized procedures.
+
 ### Boundary: ReHarness (M2 primary)
 
 [ReHarness](https://arxiv.org/abs/2610.12668) revises earlier textual reflections after new trajectories. It touches M4 via feedback but its principal contribution is correcting past memory, already owned by [M2](../m2-memory-lifecycle/research.md).
@@ -132,7 +173,12 @@ _Last reviewed: 2026-10-23. New evidence reconciled with the 2026-10-20 baseline
 | More skill memories are always better | Not supported | BASM [E5], Anti-Persistence [E8] and MemDev [E9] find regressions from unchecked reuse or persistent derived rules |
 | Persisting every distilled rule beats reconstructing from episodes | Not established | Anti-Persistence [E8] favors disposable guidance in its tested cases; generality and total cost remain open |
 | Same-task skill replay proves task transfer | Not established | SPEM's composition must be separately tested on held-out tasks; AFTER [E12] provides role/model transfer splits |
-| Reduced agent steps imply reduced total cost | MemDev [E9] finds raw trajectories shorten runs | Full trajectories increase prompt tokens; include construction, indexing, retrieval and training costs |
+| Reduced agent steps imply reduced total cost | MemDev [E9] finds raw trajectories shorten runs | Full trajectories increase prompt tokens; WASP [E13] retrieval plus execution can cost more than no memory |
+| Repeated refinement proves cross-task transfer | WASP [E13] shows gains over rounds | Its main rounds **repeat 127 task IDs**; held-out Retail and EMMA [E14] must be distinguished |
+| Better feedback can improve failure-derived lessons | WASP [E13]: diagnosis + checkpoint feedback outperforms self-judgment | Human annotation, evaluator access, repeated tasks and latency are non-free; require budget matched comparisons |
+| A locally validated skill is safe for every related task | Unsupported | Fixed-proposal family scoping in E15 prevents observed negative cross-family interference |
+| A high estimated procedural value proves causal uplift | MSCE [E16] promotes evidence-linked skills | Its value estimate is observational; ablate skill on/off with equal tool/LLM budgets |
+| All external self-improvement is pure memory reuse | EMMA [E14] and E15 learn frozen external components | Both also **alter executable harness scaffolding (H2)**; distinguish from M4-only memory and H3/H4 weight co-training |
 
 ## Minimum experiment protocol for an M4 paper
 
@@ -146,6 +192,10 @@ _Last reviewed: 2026-10-23. New evidence reconciled with the 2026-10-20 baseline
 8. Report **Rescue and Harm separately** with temporally ordered histories, an unchanged executor and frozen memory at evaluation (MemDev [E9]).
 9. Compare **raw trajectories, persistent skills, boundary-checked skills and disposable query-time guidance** at equal *total* write + read + execution budgets (E5, E8, E9).
 10. For compositional skill selectors such as SPEM, ablate **graph/skill storage separately from the trained GNN controller**; report held-out template transfer.
+11. Separate **same-task repeated rollouts**, **disjoint in-family tasks**, **new task families**, **cross-domain cold-start** and **cross-domain warm-start plus target adaptation**; exclude leaked task answers and evaluator digests from skills.
+12. Compare **self-judgment, external checkpoints and human causal diagnosis** separately from consolidation algorithms; count annotation hours, generation/search calls and per-batch API dollars (WASP [E13]).
+13. Attach an explicit **skill certificate**: source trajectory IDs and validity dates, supported task families, tool/API versions, preconditions, failure/recovery notes, permission boundaries and rollback reference. Randomize *deployment scope* while holding proposal/gating fixed (E15).
+14. For harness-changing results (EMMA and scoped ORC), ablate controller/routing, specialist creation, and skill artifacts independently; also compare no-memory, raw episodic reuse and equal-compute task search. Report rescued **and harmed** tasks, including expired procedures.
 
 ## Next priorities
 
@@ -155,5 +205,8 @@ _Last reviewed: 2026-10-23. New evidence reconciled with the 2026-10-20 baseline
 - Monitor independent replications and preprint revisions; distinguish meaningful new evidence from reuse of branded “self-evolution” terminology.
 - **New priority:** compare raw episodic traces, permanent skill libraries, boundary-aware skills and *on-demand temporary* guidance on identical held-out tasks, recording Rescue/Harm, cross-role transfer, latency, tokens and artifact-construction costs.
 - **New priority:** evaluate dependency-aware Skill-DAGs on task/tool drift; avoid treating replay of the task that created the DAG as evidence of transfer.
+- **Priority from E13:** replicate wiki versus raw episodes versus boundary-aware skill folders on **held-out family splits**, matched human feedback and full API+retrieval+consolidation budgets.
+- **Priority from E15:** use paired experiments to test **scoped versus global skill activation** after one certified success, with randomized task order, uncertain family labels and expired API signatures.
+- **Priority from E16:** test whether evidence-grounded policy promotion still improves outcomes when the purported skill is turned off/on counterfactually, with fixed executor and no further target-domain evolution.
 
-_All numeric gains are author-reported and tied to specific experimental protocols; most new October works are unreviewed arXiv preprints. No benchmark or code was independently rerun. This is a living synthesis of E1–E12, not a scheduler event log._
+_Compact history: E1–E12 were synthesized through 2026-10-23. The 2026-11-06 review adds new 2026-11-02 WASP-Mem [E13] and 2026-10-25 EMMA [E14], plus previously omitted 2026-09 scope controls [E15] and peer-reviewed 2026-10 MSCE [E16]. ReHarness remains M2-primary and Harness² H2-primary. Evidence quality, confounders and unresolved negatives are explicitly retained. Except MSCE's peer-reviewed status, new experiments are author-reported preprints; no code or benchmark was independently rerun. This document is a living synthesis, not an append-only run log._
